@@ -163,13 +163,15 @@ def tokenize(word: str, vocab: Vobaulary):
 
     return (list): 토큰화된 단어
     '''
+    logger.debug(f"{word} 토큰화")
     tokens = []
     
     ## 속도 증가를 위해 vocab 압축
-    start_vocab = [voc for voc in vocab.get_start_vocab() if voc.startswith(word[0])]
-    logger.debug(f"{word}의 start_vocab: {start_vocab}")
-
-    for voc in start_vocab:
+    # start_vocab = [voc for voc in vocab.get_start_vocab() if voc.startswith(word[0])]
+    # logger.debug(f"{word}의 start_vocab: {start_vocab}")
+    
+    # for voc in start_vocab:
+    for voc in vocab.get_start_vocab():
         if word.startswith(voc):
             tokens.append(voc)
             break
@@ -178,7 +180,12 @@ def tokenize(word: str, vocab: Vobaulary):
     new_word = word
     while True:
         try:
-            new_word = new_word.replace(tokens[-1].lstrip('##'), '')
+            # # 관련 이스케이프 미처리한 대신 if문 추가함
+            if tokens[-1].startswith('##'):
+                new_word = new_word.replace(tokens[-1].lstrip('##'), '', 1)
+            else:
+                new_word = new_word.replace(tokens[-1], '', 1)
+            
             logger.debug(f"{word}의 처리 후 상태: {new_word}")
 
             if new_word == '':
@@ -258,7 +265,7 @@ class Instance:
 
         return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
         '''
-        tokens = [token.lstrip('##') for token in self.tokens]
+        tokens = [token.lstrip('##') if token.startswith('##') else token for token in self.tokens]
         logger.debug(f"{self.word} 인스턴스 내부의 ## strip된 토큰 목록: {tokens}")
 
         pairs = []
@@ -463,7 +470,7 @@ class BPE():
             # 가장 자주 등장하는 인접 토큰 쌍 찾기
             max_pair = max(pair_freq, key=pair_freq.get)
             logger.info(f"가장 자주 등장하는 토큰 쌍 검색 완료")
-            logger.debug(f"가장 자주 등장하는 토큰 쌍: {max_pair}")
+            logger.info(f"가장 자주 등장하는 토큰 쌍: {max_pair}, {pair_freq[max_pair]}")
             logger.debug(f"가장 자주 등장하는 토큰 쌍 등장 횟수: {pair_freq[max_pair]}")
             logger.info(f"어휘 집합에 새로운 단어를 추가합니다. {max_pair}")
 
