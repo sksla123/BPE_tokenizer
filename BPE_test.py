@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 
 import re
@@ -20,7 +21,7 @@ def get_kst_timestamp() -> str:
 parser = argparse.ArgumentParser(prog="BPE Tokenizer")
 
 ## 디버그용 로그 설정
-parser.add_argument('--log', action="store_false", help='학습에 사용할 코퍼스 파일 위치')
+parser.add_argument('--log', action="store_true", help='학습에 사용할 코퍼스 파일 위치')
 
 ## 학습 모드와 추론 모드는 동시에 실행 불가능하게 막아놓음
 group = parser.add_mutually_exclusive_group()
@@ -67,8 +68,8 @@ if not args.log:
     file_handler.setLevel(logging.CRITICAL + 1)  # 파일 핸들러 비활성화 (모든 로그 무시)
     logger.info("파일 로깅 비활성화")  # stdout으로만 출력됨
 
-logging.debug(f"로깅 활성화")
-logging.info("BPE 토크나이저 프로그램 실행됨.")
+logger.debug(f"로깅 활성화")
+logger.info("BPE 토크나이저 프로그램 실행됨.")
 
 # 함수 및 클래스 정의 파트
 # 어휘 집합 클래스
@@ -105,7 +106,7 @@ class Vobaulary:
             3. 사전순 오름차순
             '''
 
-            is_hash = s.startwith('##')
+            is_hash = s.startswith('##')
             return (is_hash, -len(s), s)
 
         return sorted(vocab, key=self._sorting_rule)
@@ -337,16 +338,16 @@ class BPE():
         return (dict): 훈련 결과
         '''
         
-        logging.info("훈련에 사용할 말 뭉치를 로딩합니다.")
-        logging.debug(f"훈련 데이터 경로: {self.train_corpus_path}")
+        logger.info("훈련에 사용할 말 뭉치를 로딩합니다.")
+        logger.debug(f"훈련 데이터 경로: {self.train_corpus_path}")
         self.train_corpus = self._load_corpus(self.train_corpus_path)
         
-        logging.info("BPE 훈련을 진행합니다.")
+        logger.info("BPE 훈련을 진행합니다.")
 
-        logging.info("Pre-Tokenization을 진행합니다.")
+        logger.info("Pre-Tokenization을 진행합니다.")
         tokenized_instances = self.pre_tokenize(self.train_corpus)
 
-        logging.info("BPE 훈련을 진행합니다.")
+        logger.info("BPE 훈련을 진행합니다.")
         self._train_bpe(tokenized_instances)
         
     def _train_bpe(self, tokenized_instances: list):
@@ -362,9 +363,9 @@ class BPE():
 
         train_loop_count = 0
         while len(vocab) < vocab_size:
-            logging.info(f"현재 훈련 반복 횟수: {train_loop_count}")
-            logging.debug(f"현재 어휘 집합 크기: {len(vocab)}")
-            logging.debug(f"현재 어휘 집합: {vocab}")
+            logger.info(f"현재 훈련 반복 횟수: {train_loop_count}")
+            logger.debug(f"현재 어휘 집합 크기: {len(vocab)}")
+            logger.debug(f"현재 어휘 집합: {vocab}")
 
             # 현 상황에서 가장 자주 등장하는 인접 토큰 쌍 찾기
             pair_freq = {}
@@ -378,26 +379,26 @@ class BPE():
             
             # 가장 자주 등장하는 인접 토큰 쌍 찾기
             max_pair = max(pair_freq, key=pair_freq.get)
-            logging.debug(f"가장 자주 등장하는 토큰 쌍: {max_pair}")
-            logging.debug(f"가장 자주 등장하는 토큰 쌍 등장 횟수: {pair_freq[max_pair]}")
-            logging.info(f"어휘 집합에 새로운 단어를 추가합니다. {max_pair}")
+            logger.debug(f"가장 자주 등장하는 토큰 쌍: {max_pair}")
+            logger.debug(f"가장 자주 등장하는 토큰 쌍 등장 횟수: {pair_freq[max_pair]}")
+            logger.info(f"어휘 집합에 새로운 단어를 추가합니다. {max_pair}")
 
             # 가장 자주 등장하는 인접 토큰 쌍을 vocab에 추가
             vocab.add(max_pair)
-            logging.debug(f"변화된 어휘 집합 크기: {len(vocab)}")
+            logger.debug(f"변화된 어휘 집합 크기: {len(vocab)}")
 
-            logging.info("인스턴스 업데이트 진행")
+            logger.info("인스턴스 업데이트 진행")
             # 인스턴스 업데이트
             instances, f = self._update_instances(instances, vocab)
 
             train_loop_count += 1
 
             if f == 1:
-                logging.info("더 이상 instance를 토큰화하는 것이 불가능하여 훈련 종료")
+                logger.info("더 이상 instance를 토큰화하는 것이 불가능하여 훈련 종료")
                 break
 
-        logging.info(f"훈련 종료, 최종 훈련 반복 횟수: {train_loop_count}")
-        logging.debug(f"훈련 종료 후 어휘 집합: {vocab}")
+        logger.info(f"훈련 종료, 최종 훈련 반복 횟수: {train_loop_count}")
+        logger.debug(f"훈련 종료 후 어휘 집합: {vocab}")
 
         self.vocab = vocab
 
@@ -406,12 +407,13 @@ class BPE():
         vocab (Vobaulary): 어휘 집합
         '''
 
-        logging.info(f"어휘 집합을 저장합니다. {self.vocab_save_path}")
-        logging.info(f"어휘 집합 크기: {len(vocab)}")
+        logger.info(f"어휘 집합을 저장합니다. {self.vocab_save_path}")
+        logger.info(f"어휘 집합 크기: {len(vocab)}")
+        os.makedirs(os.path.dirname(self.vocab_save_path), exist_ok=True)
         with open(self.vocab_save_path, 'w') as f:
             for voc in vocab.get_vocab():
                 f.write(voc + '\n')
-        logging.info(f"어휘 집합 저장 완료")
+        logger.info(f"어휘 집합 저장 완료")
 
     def load_vocab(self, vocab_path: str) -> Vobaulary:
         '''
@@ -420,11 +422,15 @@ class BPE():
         return (Vobaulary): 어휘 집합
         '''
 
-        logging.info(f"어휘 집합을 로딩합니다. {vocab_path}")
+        # 어휘 집합 존재 여부 검사
+        if not os.path.exists(vocab_path):
+            raise FileNotFoundError(f"어휘 집합 파일을 찾을 수 없습니다. {vocab_path}")
+        
+        logger.info(f"어휘 집합을 로딩합니다. {vocab_path}")
         with open(vocab_path, 'r') as f:
             vocab = f.read().splitlines()
-        logging.info(f"어휘 집합 로딩 완료")
-        logging.debug(f"어휘 집합 크기: {len(vocab)}")
+        logger.info(f"어휘 집합 로딩 완료")
+        logger.debug(f"어휘 집합 크기: {len(vocab)}")
 
         return Vobaulary(vocab)
     
@@ -433,17 +439,17 @@ class BPE():
         input_data (str): 추론 데이터
         '''
 
-        logging.info(f"추론 데이터를 로딩합니다. {self.input_data_path}")
+        logger.info(f"추론 데이터를 로딩합니다. {self.input_data_path}")
         with open(self.input_data_path, 'r') as f:
             input_data = f.read()
-        logging.info(f"추론 데이터 로딩 완료")
+        logger.info(f"추론 데이터 로딩 완료")
 
-        logging.info(f"추론에 사용할 어휘 집합을 로딩합니다. {self.infer_vocab_path}")
+        logger.info(f"추론에 사용할 어휘 집합을 로딩합니다. {self.infer_vocab_path}")
         self.vocab = self.load_vocab(self.infer_vocab_path)
-        logging.info(f"추론에 사용할 어휘 집합 로딩 완료")
+        logger.info(f"추론에 사용할 어휘 집합 로딩 완료")
 
 if args.train:
-    logging.debug("모드 설정: train")
+    logger.debug("모드 설정: train")
     mode = "train"
 
     config_data = {
@@ -451,9 +457,9 @@ if args.train:
         "max_vocab": args.max_vocab,
         "vocab_output_path": args.vocab
     }
-    logging.debug(f"훈련 데이터 설정: {config_data}")
+    logger.debug(f"훈련 데이터 설정: {config_data}")
 elif args.infer:
-    logging.debug("모드 설정: infer")
+    logger.debug("모드 설정: infer")
     mode = "infer"
 
     config_data = {
@@ -461,10 +467,10 @@ elif args.infer:
         "input_data_path": args.input,
         "tokenized_result_path": args.output
     }
-    logging.debug(f"추론 데이터 설정: {config_data}")
+    logger.debug(f"추론 데이터 설정: {config_data}")
 
 if mode == "train":
-    logging.info("훈련 모드로 프로그램이 동작합니다.")
+    logger.info("훈련 모드로 프로그램이 동작합니다.")
     bpe = BPE(config_data)
     bpe.train_bpe()
     bpe.save_vocab(bpe.vocab)
