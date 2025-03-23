@@ -17,6 +17,17 @@ def get_kst_timestamp() -> str:
     return kst_time.strftime("%Y%m%d%H%M%S")
 
 import re
+# Instace 클래스 정의
+class Instance:
+    def __init__(self, instance: str, instance_count: int):
+        self.word = instance
+        self.tokens = set(self.word)
+        self.tokenized_wold_length = len(self.tokens)
+        self.instance_count = instance_count
+        
+        
+
+# BPE 토크나이저 클래스 정의
 class BPE():
     def __init__(self, config_data: dict):
         self.config_data = config_data
@@ -40,6 +51,18 @@ class BPE():
             corpus = f.read()
         return corpus
     
+    def _build_instances(self, tokenized_instances: list) -> list:
+        '''
+        tokenized_instances (list): 토큰화된 인스턴스 목록
+
+        return (list): 인스턴스 목록
+        '''
+
+        instances = set(tokenized_instances)
+        instance_count = {instance: tokenized_instances.count(instance) for instance in instances}
+        
+        return [Instance(instance, instance_count[instance]) for instance in instances]
+
     # pre-tokenize 함수 정의
     def pre_tokenize(self, corpus: str, method: str = "whitespace"):
         '''
@@ -78,7 +101,19 @@ class BPE():
 
         return (dict): 훈련 결과
         '''
-        
+
+        vocab_size = self.vocab_size
+        vocab = base_vocab
+
+        train_loop_count = 0
+        while len(vocab) < vocab_size:
+            logging.info(f"현재 훈련 반복 횟수: {train_loop_count}")
+            logging.debug(f"현재 어휘 집합: {vocab}")
+            logging.debug(f"현재 어휘 집합 크기: {len(vocab)}")
+
+            # 훈련 데이터에서 가장 자주 등장하는 토큰 쌍 찾기
+            pair_freq = {}
+            
 
 ## 디버그용 로그 설정
 parser = argparse.ArgumentParser(prog="BPE Tokenizer")
