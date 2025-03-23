@@ -37,27 +37,40 @@ parser.add_argument('--output', type=str, help='추론된 결과를 저장할 �
 args = parser.parse_args()
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 log_file_path = f"./log/{get_kst_timestamp()}.log"
 
 # 로그 폴더 생성
-os.makedirs(log_file_path, exist_ok=True)
+os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
 
-logging.basicConfig(
-    filename=log_file_path,
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+# 파일 핸들러 추가 (로그를 파일에 기록)
+file_handler = logging.FileHandler(log_file_path)
+file_handler.setLevel(logging.DEBUG)  # DEBUG 이상의 모든 로그 기록
+file_formatter = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
 )
+file_handler.setFormatter(file_formatter)
 
-# 로그 비활성화
+# stdout 핸들러 추가 (로그를 stdout에 출력)
+stdout_handler = logging.StreamHandler(stream=sys.stdout)
+stdout_handler.setLevel(logging.INFO)  # stdout에 INFO 이상의 로그 출력
+stdout_formatter = logging.Formatter("[%(levelname)s] %(message)s")
+stdout_handler.setFormatter(stdout_formatter)
+
+# 핸들러를 로거에 추가
+logger.addHandler(file_handler)
+logger.addHandler(stdout_handler)
+
+# 로그 비활성화 (args.log가 False일 경우)
 if not args.log:
-    logging.disable(logging.CRITICAL)
+    file_handler.setLevel(logging.CRITICAL + 1)  # 파일 핸들러 비활성화 (모든 로그 무시)
+    logger.info("파일 로깅 비활성화")  # stdout으로만 출력됨
 
-logging.debug(f"디버그 로깅 활성화")
-logging.info("로깅 활성화, BPE 토크나이저 프로그램 실행됨.")
+logging.debug(f"로깅 활성화")
+logging.info("BPE 토크나이저 프로그램 실행됨.")
 
-# 함수 정의 파트
-
+# 함수 및 클래스 정의 파트
 # 어휘 집합 클래스
 class Vobaulary:
     '''
@@ -452,5 +465,7 @@ elif args.infer:
 
 if mode == "train":
     logging.info("훈련 모드로 프로그램이 동작합니다.")
-    
+    bpe = BPE(config_data)
+    bpe.train_bpe()
+    bpe.save_vocab(bpe.vocab)
 
