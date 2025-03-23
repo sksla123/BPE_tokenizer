@@ -88,9 +88,6 @@ class Vobaulary:
 
         self.set_vocab(vocab)
 
-        logger.info("최초 어휘 집합 생성")
-        logger.debug(f"최초 어휘 집합: {self.vocab}")
-
     def __str__(self):
         return f"Vocabulary: {self.vocab}"
 
@@ -150,11 +147,10 @@ class Vobaulary:
         '''
         어휘 집합에 새로운 단어를 추가하는 함수
         '''
+        logger.debug(f"어휘 집합에 추가된 새로운 단어: {vocab}")
         self.vocab.append(vocab)
         self.set_vocab(self.vocab)
-        
-        logger.debug(f"변화된 어휘 집합: {self.vocab}")
-        
+
 ## 토큰화 함수 정의
 def tokenize(word: str, vocab: Vobaulary):
     '''
@@ -175,8 +171,7 @@ def tokenize(word: str, vocab: Vobaulary):
         if word.startswith(voc):
             tokens.append(voc)
             break
-    logger.debug(f"{word}의 최초 토큰: {tokens[0]}")
-
+    
     new_word = word
     while True:
         try:
@@ -186,8 +181,6 @@ def tokenize(word: str, vocab: Vobaulary):
             else:
                 new_word = new_word.replace(tokens[-1], '', 1)
             
-            logger.debug(f"{word}의 처리 후 상태: {new_word}")
-
             if new_word == '':
                 break
             
@@ -195,11 +188,11 @@ def tokenize(word: str, vocab: Vobaulary):
                 if new_word.startswith(voc.lstrip('##')):
                     tokens.append(voc)
                     break
-            logger.debug(f"{word}의 다음 토큰: {tokens[-1]}")
-
         except:
             logger.error(f"에러 발생, word: {word}, new_word: {new_word}, tokens: {tokens}")
             sys.exit(1)
+    
+    logger.debug(f"{word} 토큰화 완료\n토큰 목록: {tokens}")
 
     return tokens
         
@@ -211,7 +204,6 @@ class Instance:
 
         # 최초 토큰화(알파벳 단위)
         self.tokens = ['##' + token if i > 0 else token for i, token in enumerate(self.word)]
-
         logger.debug(f"{self.word}의 최초 토큰화 결과 -> {self.tokens}")
 
         self.token_count = len(self.tokens)
@@ -266,7 +258,6 @@ class Instance:
         return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
         '''
         tokens = [token.lstrip('##') if token.startswith('##') else token for token in self.tokens]
-        logger.debug(f"{self.word} 인스턴스 내부의 ## strip된 토큰 목록: {tokens}")
 
         pairs = []
         for i in range(len(tokens) - 1):
@@ -274,7 +265,7 @@ class Instance:
                 pairs.append(tokens[i] + tokens[i + 1])
             else:
                 pairs.append('##' + tokens[i] + tokens[i + 1])
-        logger.debug(f"{self.word} 인스턴스 내부의 인접 토큰 쌍: {pairs}")
+        logger.debug(f"{self.word} 인스턴스의 인접 토큰 쌍 (bigrams): {pairs}")
 
         return pairs
     
@@ -307,8 +298,13 @@ class BPE():
 
         return (str): 코퍼스 파일 내용
         '''
-        with open(corpus_path, 'r') as f:
+        with open(corpus_path, 'r', encoding='utf-8') as f:
             corpus = f.read()
+            # BOM 제거
+            corpus = corpus.lstrip("\ufeff")
+            # 연속으로 # 이 붙어있는 경우 \으로 분리
+            corpus = re.sub(r"(#+)", lambda m: "\\".join(m.group(1)), corpus)
+
         return corpus
     
     def _build_instances(self, tokenized_instances: list) -> list:
@@ -375,9 +371,6 @@ class BPE():
         # 화이트 스페이스 문자 제거
         base_vocab = [voc for voc in base_vocab if voc not in whitespace_chars]
 
-        logger.info(f"초기 어휘 집합 크기: {len(base_vocab)}")
-        logger.debug(f"초기 어휘 집합: {base_vocab}")
-
         total = len(instances)
         i = 0
         instance_vocab = []
@@ -388,12 +381,12 @@ class BPE():
         
         instance_vocab = list(set(itertools.chain.from_iterable(instance_vocab)))
         print(f"\n인스턴스 vocab 업데이트 완료")
-        
-        logger.info(f"인스턴스 vocab 집합 크기: {len(instance_vocab)}")
-        logger.debug(f"인스턴스 vocab 집합: {instance_vocab}")
 
         # instance_vocab = list(itertools.chain.from_iterable([instance.get_tokens() for instance in instances]))
         base_vocab = list(itertools.chain(base_vocab, instance_vocab))
+
+        logger.debug(f"초기 어휘 집합 크기: {len(base_vocab)}")
+        logger.debug(f"초기 어휘 집합: {base_vocab}")
 
         return Vobaulary(base_vocab)
 
@@ -407,7 +400,13 @@ class BPE():
         ''' 
 
         if method == "whitespace":
-            return re.split(r'\s+', corpus) ## whitespace 기준으로 분리
+            ret = re.split(r'\s+', corpus) ## whitespace 기준으로 분리
+            
+            # 이상한 "" 문자 제거
+            if "" in ret:
+                ret.remove("")
+            
+            return ret
         else:
             raise ValueError(f"지원하지 않는 pre-tokenize 방법입니다. {method}\n 지원하는 메소드 목록: [whitespace]")
 
@@ -453,7 +452,7 @@ class BPE():
         while len(vocab) < vocab_size:
             logger.info(f"현재 훈련 반복 횟수: {train_loop_count}")
             logger.debug(f"현재 어휘 집합 크기: {len(vocab)}")
-            logger.debug(f"현재 어휘 집합: {vocab}")
+            # logger.debug(f"현재 어휘 집합: {vocab}") ## 로그 파일 크기가 너무 커짐
 
             logger.info(f"현재 상황에서 가장 자주 등장하는 인접 토큰 쌍 검색 중 ...")
             # 현 상황에서 가장 자주 등장하는 인접 토큰 쌍 찾기
@@ -471,7 +470,6 @@ class BPE():
             max_pair = max(pair_freq, key=pair_freq.get)
             logger.info(f"가장 자주 등장하는 토큰 쌍 검색 완료")
             logger.info(f"가장 자주 등장하는 토큰 쌍: {max_pair}, {pair_freq[max_pair]}")
-            logger.debug(f"가장 자주 등장하는 토큰 쌍 등장 횟수: {pair_freq[max_pair]}")
             logger.info(f"어휘 집합에 새로운 단어를 추가합니다. {max_pair}")
 
             # 가장 자주 등장하는 인접 토큰 쌍을 vocab에 추가
