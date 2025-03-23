@@ -92,9 +92,9 @@ class Vobaulary:
     def __len__(self):
         return len(self.vocab)
 
-    def _sort_vocab(self, vocab: list):
+    def _sort_vocab(self, vocab: list[str]):
         '''
-        vocab (list): 어휘 집합
+        vocab (list[str]): 어휘 집합
 
         return (list): 정렬된 어휘 집합
         '''
@@ -334,7 +334,7 @@ class BPE():
         i = 0
         instance_vocab = []
         for instance in instances:
-            instance_vocab.append(instance.get_tokens())
+            instance_vocab.extend(instance.get_tokens())
             i += 1
             print(f"\r인스턴스 vocab 업데이트 중 {i} / {total}", end="")
         print(f"\n인스턴스 vocab 업데이트 완료")
