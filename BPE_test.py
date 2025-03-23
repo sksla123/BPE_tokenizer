@@ -1,6 +1,8 @@
 import os
 import argparse
 
+import re
+
 import logging
 
 # 함수 정의 파트
@@ -16,41 +18,92 @@ def get_kst_timestamp() -> str:
     kst_time = datetime.now(ZoneInfo("Asia/Seoul"))
     return kst_time.strftime("%Y%m%d%H%M%S")
 
-import re
+class Vobaulary:
+    def __init__(self, vocab: list):
+        self.vocab = []
+
+    def __str__(self):
+        return f"Vocabulary: {self.vocab}"
+
+    def __len__(self):
+        return len(self.vocab)
+
+    def get_vocab(self):
+        return self.vocab
+    
+    def set_vocab(self, vocab: list):
+        
+
 # Instace 클래스 정의
 class Instance:
     def __init__(self, instance: str, instance_count: int):
         self.word = instance
-        self.tokens = set(self.word)
-        self.tokenized_wold_length = len(self.tokens)
+        self.tokens = ['##' + token if i > 0 else token for i, token in enumerate(self.word)]
+        self.token_count = len(self.tokens)
         self.instance_count = instance_count
     
+    def tokenize(self, vocab: list):
+        '''
+        vocab (list): 어휘 집합
+
+        return (list): 토큰화된 인스턴스
+        '''
+
+        self.tokens = 
+        self.token_count = len(self.tokens)
+
+    def get_tokens(self):
+        return self.tokens
+
     def _get_token_count(self, tokens: str):
         '''
         tokens (str): 토큰 목록
 
-        return ([(token, count)]): 토큰 목록과 각 토큰의 등장 횟수
+        return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
         '''
 
         # 토큰 목록과 각 토큰의 등장 횟수 반환
         ## self.word.count(token) * self.instance_count하는 이유 token이 단어 안에서 여러번 반복 될 수 있기 때문
-        return [(token, self.word.count(token) * self.instance_count) for token in tokens]
+        return [(token, self.word.count(token.strip('##')) * self.instance_count) for token in tokens]
 
     def get_token_count(self):
         '''
-        return ([(token, count)]): 토큰 목록과 각 토큰의 등장 횟수
+        return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
         '''
 
         return self._get_token_count(self.tokens)
     
-    def create_pair(self):
+    def _get_pair_count(self, pairs: list):
         '''
-        현재 토큰을 가지고 인스턴스 내부에서 인접 토큰들과 연결하여, 임의의 토큰 쌍을 생성하는 함수
-        
-        return ([(token, count)]): 토큰 목록과 각 토큰의 등장 횟수
+        pairs (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
+
+        return (list): [(pair1, count1), (pair2, count2), ...] 형식의 토큰 쌍 목록과 각 토큰 쌍의 등장 횟수
         '''
 
-        return self._get_token_count(self.tokens)
+        return self._get_token_count(pairs)
+
+    def _create_pair(self):
+        '''
+        현재 토큰을 가지고 인스턴스 내부에서 인접 토큰들과 연결하여, 임의의 토큰 쌍을 생성하는 함수
+
+        return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
+        '''
+
+        pairs = []
+        for i in range(len(self.tokens) - 1):
+            if i == 0:
+                pairs.append(self.tokens[i] + self.tokens[i + 1])
+            else:
+                pairs.append('##' + self.tokens[i] + self.tokens[i + 1])
+        
+        return pairs
+    
+    def get_pair_and_count(self):
+        '''
+        return (list): [(pair1, count1), (pair2, count2), ...] 형식의 토큰 쌍 목록과 각 토큰 쌍의 등장 횟수
+        '''
+
+        return self._get_pair_count(self._create_pair())
 
 # BPE 토크나이저 클래스 정의
 class BPE():
@@ -94,11 +147,11 @@ class BPE():
         corpus (str): pre-tokenize 대상 코퍼스
         method (str): pre-tokenize 방법 [whitespace] # 현재는 whitespace만 지원(추후 개발)
 
-        return (set, list): pre-tokenize 결과(base-vocab, tokenized-instances)
+        return (list): pre-tokenize 결과(tokenized-instances)
         ''' 
 
         if method == "whitespace":
-            return set(corpus), re.split(r'\s+', corpus) ## whitespace 기준으로 분리
+            return re.split(r'\s+', corpus) ## whitespace 기준으로 분리
         else:
             raise ValueError(f"지원하지 않는 pre-tokenize 방법입니다. {method}\n 지원하는 메소드 목록: [whitespace]")
 
@@ -117,18 +170,17 @@ class BPE():
         logging.info("BPE 훈련을 진행합니다.")
 
         logging.info("Pre-Tokenization을 진행합니다.")
-        base_vocab, tokenized_instances = self.pre_tokenize(train_corpus)
+        tokenized_instances = self.pre_tokenize(train_corpus)
         
-    def _train_bpe(self, base_vocab: set, tokenized_instances: list):
+    def _train_bpe(self, tokenized_instances: list):
         '''
-        base_vocab (set): 기본 어휘 집합
         tokenized_instances (list): 토큰화된 인스턴스 목록
 
         return (dict): 훈련 결과
         '''
 
         vocab_size = self.vocab_size
-        vocab = base_vocab
+        
 
         train_loop_count = 0
         while len(vocab) < vocab_size:
