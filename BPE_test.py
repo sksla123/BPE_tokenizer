@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import itertools ## 속도를 어떻게든 올리기 위한 발악..
 
 import re
 
@@ -79,8 +80,7 @@ class Vobaulary:
     항상 정렬된 어휘 집합을 유지하기 위해 생성
     '''
     def __init__(self, vocab: list):
-        self.vocab = []
-        self.vocab = self._sort_vocab(vocab)
+        self.vocab = self._sort_vocab(list(set(vocab)))
         self.hashed_vocab_start_idx = -1
 
         self.start_vocab = []
@@ -130,7 +130,7 @@ class Vobaulary:
 
         vocab (list): 어휘 집합
         '''
-        self.vocab = self._sort_vocab(vocab)
+        self.vocab = self._sort_vocab(list(set(vocab)))
         ## 해쉬로 시작하는 보캡의 위치를 찾기
         ## 그냥 for 문은 느릴 거 같아서 next 함수를 이용
         self.hashed_vocab_start_idx = next((idx for idx, voc in enumerate(self.vocab) if voc.startswith('##')), -1)
@@ -334,13 +334,14 @@ class BPE():
         i = 0
         instance_vocab = []
         for instance in instances:
-            instance_vocab.extend(instance.get_tokens())
+            instance_vocab.append(instance.get_tokens())
             i += 1
             print(f"\r인스턴스 vocab 업데이트 중 {i} / {total}", end="")
+        instance_vocab = list(set(itertools.chain(instance_vocab)))
         print(f"\n인스턴스 vocab 업데이트 완료")
 
-        # instance_vocab = [instance.get_tokens() for instance in instances]
-        base_vocab.extend(instance_vocab)
+        # instance_vocab = list(itertools.chain([instance.get_tokens() for instance in instances]))
+        base_vocab = list(itertools.chain(base_vocab, instance_vocab))
 
         return Vobaulary(base_vocab)
 
