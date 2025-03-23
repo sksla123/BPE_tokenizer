@@ -80,11 +80,16 @@ class Vobaulary:
     항상 정렬된 어휘 집합을 유지하기 위해 생성
     '''
     def __init__(self, vocab: list):
-        self.vocab = self._sort_vocab(list(set(vocab)))
+        self.vocab = []
         self.hashed_vocab_start_idx = -1
 
         self.start_vocab = []
         self.hashed_vocab = []
+
+        self.set_vocab(vocab)
+
+        logger.info("최초 어휘 집합 생성")
+        logger.debug(f"최초 어휘 집합: {self.vocab}")
 
     def __str__(self):
         return f"Vocabulary: {self.vocab}"
@@ -131,6 +136,9 @@ class Vobaulary:
         vocab (list): 어휘 집합
         '''
         self.vocab = self._sort_vocab(list(set(vocab)))
+
+
+
         ## 해쉬로 시작하는 보캡의 위치를 찾기
         ## 그냥 for 문은 느릴 거 같아서 next 함수를 이용
         self.hashed_vocab_start_idx = next((idx for idx, voc in enumerate(self.vocab) if voc.startswith('##')), -1)
@@ -154,32 +162,48 @@ def tokenize(word: str, vocab: Vobaulary):
     return (list): 토큰화된 단어
     '''
     tokens = []
+    
+    ## 속도 증가를 위해 vocab 압축
+    start_vocab = [voc for voc in vocab.get_start_vocab() if voc.startswith(word[0])]
+    logger.debug(f"{word}의 start_vocab: {start_vocab}")
 
-    for voc in vocab.get_start_vocab():
+    for voc in start_vocab:
         if word.startswith(voc):
             tokens.append(voc)
             break
-    
+    logger.debug(f"{word}의 최초 토큰: {tokens[0]}")
+
     new_word = word
     while True:
-        new_word = new_word.replace(tokens[-1].strip('##'), '')
-        if new_word == '':
-            break
-        
-        for voc in vocab.get_hashed_vocab():
-            if new_word.startswith(voc.strip('##')):
-                tokens.append(voc)
+        try:
+            new_word = new_word.replace(tokens[-1].strip('##'), '')
+            if new_word == '':
                 break
-    
+            
+            for voc in vocab.get_hashed_vocab():
+                if new_word.startswith(voc.strip('##')):
+                    tokens.append(voc)
+                    break
+            logger.debug(f"{word}의 다음 토큰: {tokens[-1]}")
+
+        except:
+            logger.error(f"에러 발생, word: {word}, new_word: {new_word}, tokens: {tokens}")
+            break
+
     return tokens
         
 # Instace 클래스 정의
 class Instance:
     def __init__(self, instance: str, instance_count: int):
         self.word = instance
+        logger.debug(f"{self.word} 인스턴스 생성")
 
         # 최초 토큰화(알파벳 단위)
-        self.tokens = [token if i > 0 else '##' + token for i, token in enumerate(self.word)]
+        self.tokens = ['##' + token if i > 0 else token for i, token in enumerate(self.word)]
+        self.word = self.word.replace('#', r'\#') # 이스케이프 처리
+
+        logger.debug(f"{self.word}의 최초 토큰화 결과 -> {self.tokens}")
+
         self.token_count = len(self.tokens)
         self.instance_count = instance_count
 
@@ -273,7 +297,6 @@ class BPE():
         '''
         with open(corpus_path, 'r') as f:
             corpus = f.read()
-            corpus.replace('#', r'\#')
         return corpus
     
     def _build_instances(self, tokenized_instances: list) -> list:
@@ -313,6 +336,7 @@ class BPE():
 
         total = len(instances)
         i = 0
+        print("인스턴스 업데이트 중 ...")
         for instance in instances:
             ## f에 곱하는 이유, 만약 instance 내부의 토큰의 수가 모두 1이라면 더 이상 토큰화가 불가능하기 때문
             f *= instance.tokenize(vocab)
@@ -329,7 +353,23 @@ class BPE():
         return (Vobaulary): 어휘 집합
         '''
         
-        base_vocab = list(set(corpus))
+        whitespace_chars = {9, 10, 11, 12, 13, 32}
+        base_vocab = [chr(i) for i in range(128)] 
+        _char_in_corpus = list(set(corpus)) # 혹시 corpus에 ascii보다 큰 문자가 있을 수 있어서 처리하는 함수 추가
+        
+        base_vocab.extend(_char_in_corpus)
+        base_vocab = set(base_vocab)
+
+        # #은 이스케이프 처리(추후 혼동 방지)
+        if '#' in base_vocab:
+            base_vocab.remove('#')
+        base_vocab.add(r'\#')
+
+        # 화이트 스페이스 문자 제거
+        base_vocab = [voc for voc in base_vocab if voc not in whitespace_chars]
+
+        logger.info(f"초기 어휘 집합 크기: {len(base_vocab)}")
+        logger.debug(f"초기 어휘 집합: {base_vocab}")
 
         total = len(instances)
         i = 0
@@ -338,8 +378,12 @@ class BPE():
             instance_vocab.append(instance.get_tokens())
             i += 1
             print(f"\r인스턴스 vocab 업데이트 중 {i} / {total}", end="")
+        
         instance_vocab = list(set(itertools.chain.from_iterable(instance_vocab)))
         print(f"\n인스턴스 vocab 업데이트 완료")
+        
+        logger.info(f"인스턴스 vocab 집합 크기: {len(instance_vocab)}")
+        logger.debug(f"인스턴스 vocab 집합: {instance_vocab}")
 
         # instance_vocab = list(itertools.chain.from_iterable([instance.get_tokens() for instance in instances]))
         base_vocab = list(itertools.chain(base_vocab, instance_vocab))
@@ -393,6 +437,7 @@ class BPE():
         logger.info(f"초기 인스턴스 생성 중 ...")
         instances = self._build_instances(tokenized_instances)
         logger.info(f"초기 인스턴스 생성 완료")
+
         logger.info(f"초기 어휘 집합 생성 중 ...")
         vocab = self._build_base_vocab(self.train_corpus, instances)
         logger.info(f"초기 어휘 집합 생성 완료")
