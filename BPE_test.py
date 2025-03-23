@@ -176,19 +176,21 @@ def tokenize(word: str, vocab: Vobaulary):
     new_word = word
     while True:
         try:
-            new_word = new_word.replace(tokens[-1].strip('##'), '')
+            new_word = new_word.replace(tokens[-1].lstrip('##'), '')
+            logger.debug(f"{word}의 처리 후 상태: {new_word}")
+
             if new_word == '':
                 break
             
             for voc in vocab.get_hashed_vocab():
-                if new_word.startswith(voc.strip('##')):
+                if new_word.startswith(voc.lstrip('##')):
                     tokens.append(voc)
                     break
             logger.debug(f"{word}의 다음 토큰: {tokens[-1]}")
 
         except:
             logger.error(f"에러 발생, word: {word}, new_word: {new_word}, tokens: {tokens}")
-            break
+            sys.exit(1)
 
     return tokens
         
@@ -255,7 +257,7 @@ class Instance:
 
         return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
         '''
-        tokens = [token.strip('##') for token in self.tokens]
+        tokens = [token.lstrip('##') for token in self.tokens]
 
         pairs = []
         for i in range(len(tokens) - 1):
