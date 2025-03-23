@@ -41,7 +41,7 @@ args = parser.parse_args()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-log_file_path = f"./log/{get_kst_timestamp()}.log"
+log_file_path = f"./Log/{get_kst_timestamp()}.log"
 
 # 로그 폴더 생성
 os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
@@ -151,7 +151,9 @@ class Vobaulary:
         어휘 집합에 새로운 단어를 추가하는 함수
         '''
         self.vocab.append(vocab)
-        self.vocab = self._sort_vocab(self.vocab)
+        self.set_vocab(self.vocab)
+        
+        logger.debug(f"변화된 어휘 집합: {self.vocab}")
         
 ## 토큰화 함수 정의
 def tokenize(word: str, vocab: Vobaulary):
@@ -202,7 +204,6 @@ class Instance:
 
         # 최초 토큰화(알파벳 단위)
         self.tokens = ['##' + token if i > 0 else token for i, token in enumerate(self.word)]
-        self.word = self.word.replace('#', r'\#') # 이스케이프 처리
 
         logger.debug(f"{self.word}의 최초 토큰화 결과 -> {self.tokens}")
 
@@ -258,14 +259,16 @@ class Instance:
         return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
         '''
         tokens = [token.lstrip('##') for token in self.tokens]
+        logger.debug(f"{self.word} 인스턴스 내부의 ## strip된 토큰 목록: {tokens}")
 
         pairs = []
         for i in range(len(tokens) - 1):
             if i == 0:
                 pairs.append(tokens[i] + tokens[i + 1])
             else:
-                pairs.append('##' + self.tokens[i] + self.tokens[i + 1])
-        
+                pairs.append('##' + tokens[i] + tokens[i + 1])
+        logger.debug(f"{self.word} 인스턴스 내부의 인접 토큰 쌍: {pairs}")
+
         return pairs
     
     def get_pair_and_count(self):
@@ -362,11 +365,6 @@ class BPE():
         base_vocab.extend(_char_in_corpus)
         base_vocab = set(base_vocab)
 
-        # #은 이스케이프 처리(추후 혼동 방지)
-        if '#' in base_vocab:
-            base_vocab.remove('#')
-        base_vocab.add(r'\#')
-
         # 화이트 스페이스 문자 제거
         base_vocab = [voc for voc in base_vocab if voc not in whitespace_chars]
 
@@ -454,6 +452,7 @@ class BPE():
             # 현 상황에서 가장 자주 등장하는 인접 토큰 쌍 찾기
             pair_freq = {}
             for instance in instances:
+                logger.debug(f"{instance.word} 인스턴스 내부의 인접 토큰 쌍 검색 중 ...")
                 temp_pair_freq = instance.get_pair_and_count()
                 for pair, count in temp_pair_freq:
                     if pair not in pair_freq:
