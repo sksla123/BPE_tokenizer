@@ -358,7 +358,10 @@ class BPE():
         '''
 
         vocab_size = self.vocab_size
+
+        logger.info(f"초기 인스턴스 생성")
         instances = self._build_instances(tokenized_instances)
+        logger.info(f"초기 어휘 집합 생성")
         vocab = self._build_base_vocab(self.train_corpus, instances)
 
         train_loop_count = 0
@@ -367,6 +370,7 @@ class BPE():
             logger.debug(f"현재 어휘 집합 크기: {len(vocab)}")
             logger.debug(f"현재 어휘 집합: {vocab}")
 
+            logger.info(f"현재 상황에서 가장 자주 등장하는 인접 토큰 쌍 검색 중 ...")
             # 현 상황에서 가장 자주 등장하는 인접 토큰 쌍 찾기
             pair_freq = {}
             for instance in instances:
