@@ -24,8 +24,33 @@ class Instance:
         self.tokens = set(self.word)
         self.tokenized_wold_length = len(self.tokens)
         self.instance_count = instance_count
+    
+    def _get_token_count(self, tokens: str):
+        '''
+        tokens (str): 토큰 목록
+
+        return ([(token, count)]): 토큰 목록과 각 토큰의 등장 횟수
+        '''
+
+        # 토큰 목록과 각 토큰의 등장 횟수 반환
+        ## self.word.count(token) * self.instance_count하는 이유 token이 단어 안에서 여러번 반복 될 수 있기 때문
+        return [(token, self.word.count(token) * self.instance_count) for token in tokens]
+
+    def get_token_count(self):
+        '''
+        return ([(token, count)]): 토큰 목록과 각 토큰의 등장 횟수
+        '''
+
+        return self._get_token_count(self.tokens)
+    
+    def create_pair(self):
+        '''
+        현재 토큰을 가지고 인스턴스 내부에서 인접 토큰들과 연결하여, 임의의 토큰 쌍을 생성하는 함수
         
-        
+        return ([(token, count)]): 토큰 목록과 각 토큰의 등장 횟수
+        '''
+
+        return self._get_token_count(self.tokens)
 
 # BPE 토크나이저 클래스 정의
 class BPE():
