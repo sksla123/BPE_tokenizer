@@ -178,7 +178,7 @@ class Instance:
     def __init__(self, instance: str, instance_count: int):
         self.word = instance
 
-        # 첫 토큰화(알파벳 단위)
+        # 최초 토큰화(알파벳 단위)
         self.tokens = [token if i > 0 else '##' + token for i, token in enumerate(self.word)]
         self.token_count = len(self.tokens)
         self.instance_count = instance_count
@@ -273,7 +273,7 @@ class BPE():
         '''
         with open(corpus_path, 'r') as f:
             corpus = f.read()
-            corpus.replace('#','\#')
+            corpus.replace('#', r'\#')
         return corpus
     
     def _build_instances(self, tokenized_instances: list) -> list:
