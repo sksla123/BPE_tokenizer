@@ -109,7 +109,7 @@ class Vobaulary:
             is_hash = s.startswith('##')
             return (is_hash, -len(s), s)
 
-        return sorted(vocab, key=self._sorting_rule)
+        return sorted(vocab, key=_sorting_rule)
 
     def get_vocab(self):
         return self.vocab
