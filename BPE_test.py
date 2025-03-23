@@ -29,7 +29,13 @@ class BPE():
         self.tokenized_result_path = config_data.get("tokenized_result_path", None)
         self.vocab_dict = {}
 
-    def _load_corpus(self, corpus_path: str):
+    def _load_corpus(self, corpus_path: str) -> str:
+        '''
+        코퍼스 파일을 로딩합니다.
+        corpus_path (str): 코퍼스 파일 경로
+
+        return (str): 코퍼스 파일 내용
+        '''
         with open(corpus_path, 'r') as f:
             corpus = f.read()
         return corpus
@@ -38,15 +44,15 @@ class BPE():
     def pre_tokenize(self, corpus: str, method: str = "whitespace"):
         '''
         corpus (str): pre-tokenize 대상 코퍼스
-        method (str): pre-tokenize 방법 (whitespace, sentencepiece) # 현재는 whitespace만 지원(추후 개발)
+        method (str): pre-tokenize 방법 [whitespace] # 현재는 whitespace만 지원(추후 개발)
 
-        return (list): pre-tokenize 결과
+        return (set, list): pre-tokenize 결과(base-vocab, tokenized-instances)
         ''' 
 
         if method == "whitespace":
-            return re.split(r'\s+', corpus) ## whitespace 기준으로 분리
+            return set(corpus), re.split(r'\s+', corpus) ## whitespace 기준으로 분리
         else:
-            raise ValueError(f"지원하지 않는 pre-tokenize 방법입니다. {method}")
+            raise ValueError(f"지원하지 않는 pre-tokenize 방법입니다. {method}\n 지원하는 메소드 목록: [whitespace]")
 
     # BPE 훈련 함수 정의
     def train_bpe(self):
@@ -60,10 +66,18 @@ class BPE():
         logging.debug(f"훈련 데이터 경로: {self.train_corpus}")
         train_corpus = self._load_corpus(self.train_corpus)
         
-        logging.info("Pre-Tokenization을 진행합니다.")
-        pre_tokenized_corpus = self.pre_tokenize(train_corpus)
-
         logging.info("BPE 훈련을 진행합니다.")
+
+        logging.info("Pre-Tokenization을 진행합니다.")
+        base_vocab, tokenized_instances = self.pre_tokenize(train_corpus)
+        
+    def _train_bpe(self, base_vocab: set, tokenized_instances: list):
+        '''
+        base_vocab (set): 기본 어휘 집합
+        tokenized_instances (list): 토큰화된 인스턴스 목록
+
+        return (dict): 훈련 결과
+        '''
         
 
 ## 디버그용 로그 설정
