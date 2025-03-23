@@ -273,6 +273,7 @@ class BPE():
         '''
         with open(corpus_path, 'r') as f:
             corpus = f.read()
+            corpus.replace('#','\#')
         return corpus
     
     def _build_instances(self, tokenized_instances: list) -> list:
@@ -337,10 +338,10 @@ class BPE():
             instance_vocab.append(instance.get_tokens())
             i += 1
             print(f"\r인스턴스 vocab 업데이트 중 {i} / {total}", end="")
-        instance_vocab = list(set(itertools.chain(instance_vocab)))
+        instance_vocab = list(set(itertools.chain.from_iterable(instance_vocab)))
         print(f"\n인스턴스 vocab 업데이트 완료")
 
-        # instance_vocab = list(itertools.chain([instance.get_tokens() for instance in instances]))
+        # instance_vocab = list(itertools.chain.from_iterable([instance.get_tokens() for instance in instances]))
         base_vocab = list(itertools.chain(base_vocab, instance_vocab))
 
         return Vobaulary(base_vocab)
