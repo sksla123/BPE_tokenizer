@@ -284,7 +284,19 @@ class BPE():
 
         instances = set(tokenized_instances)
         
-        return [Instance(instance, tokenized_instances.count(instance)) for instance in instances]
+        ### 진행상황 확인용 코드.. (너무 느려서 추가함)
+        result = []
+        i = 0
+        total = len(instances)
+        for instance in instances:
+            inst = Instance(instance, tokenized_instances.count(instance))
+            result.append(inst)
+            i += 1
+            print(f"\r인스턴스 생성 중 {i} / {total}", end="")
+        print(f"\n인스턴스 생성 완료")
+
+        return result
+        # return [Instance(instance, tokenized_instances.count(instance)) for instance in instances]
     
     def _update_instances(self, instances: list, vocab: Vobaulary):
         '''
@@ -297,9 +309,15 @@ class BPE():
         '''
         
         f = 1
+
+        total = len(instances)
+        i = 0
         for instance in instances:
             ## f에 곱하는 이유, 만약 instance 내부의 토큰의 수가 모두 1이라면 더 이상 토큰화가 불가능하기 때문
             f *= instance.tokenize(vocab)
+            i += 1
+            print(f"\r인스턴스 업데이트 중 {i} / {total}", end="")
+        print(f"\n인스턴스 업데이트 완료")
         
         return instances, f
 
@@ -311,7 +329,17 @@ class BPE():
         '''
         
         base_vocab = list(set(corpus))
-        instance_vocab = [instance.get_tokens() for instance in instances]
+
+        total = len(instances)
+        i = 0
+        instance_vocab = []
+        for instance in instances:
+            instance_vocab.append(instance.get_tokens())
+            i += 1
+            print(f"\r인스턴스 vocab 업데이트 중 {i} / {total}", end="")
+        print(f"\n인스턴스 vocab 업데이트 완료")
+
+        # instance_vocab = [instance.get_tokens() for instance in instances]
         base_vocab.extend(instance_vocab)
 
         return Vobaulary(base_vocab)
@@ -346,7 +374,7 @@ class BPE():
 
         logger.info("Pre-Tokenization을 진행합니다.")
         tokenized_instances = self.pre_tokenize(self.train_corpus)
-        logger.debug(f"tokenized_instances 개수: {len(tokenized_instances)}")
+        logger.info(f"tokenized_instances 개수: {len(tokenized_instances)}")
 
         logger.info("BPE 훈련을 진행합니다.")
         self._train_bpe(tokenized_instances)
