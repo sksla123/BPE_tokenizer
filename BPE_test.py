@@ -179,7 +179,7 @@ class Instance:
         self.word = instance
 
         # 첫 토큰화(알파벳 단위)
-        self.tokens = ['##' + token if i > 0 else token for i, token in enumerate(self.word)]
+        self.tokens = [token if i > 0 else '##' + token for i, token in enumerate(self.word)]
         self.token_count = len(self.tokens)
         self.instance_count = instance_count
 
