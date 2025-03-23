@@ -346,6 +346,7 @@ class BPE():
 
         logger.info("Pre-Tokenization을 진행합니다.")
         tokenized_instances = self.pre_tokenize(self.train_corpus)
+        logger.debug(f"tokenized_instances 개수: {len(tokenized_instances)}")
 
         logger.info("BPE 훈련을 진행합니다.")
         self._train_bpe(tokenized_instances)
@@ -359,10 +360,12 @@ class BPE():
 
         vocab_size = self.vocab_size
 
-        logger.info(f"초기 인스턴스 생성")
+        logger.info(f"초기 인스턴스 생성 중 ...")
         instances = self._build_instances(tokenized_instances)
-        logger.info(f"초기 어휘 집합 생성")
+        logger.info(f"초기 인스턴스 생성 완료")
+        logger.info(f"초기 어휘 집합 생성 중 ...")
         vocab = self._build_base_vocab(self.train_corpus, instances)
+        logger.info(f"초기 어휘 집합 생성 완료")
 
         train_loop_count = 0
         while len(vocab) < vocab_size:
@@ -383,6 +386,7 @@ class BPE():
             
             # 가장 자주 등장하는 인접 토큰 쌍 찾기
             max_pair = max(pair_freq, key=pair_freq.get)
+            logger.info(f"가장 자주 등장하는 토큰 쌍 검색 완료")
             logger.debug(f"가장 자주 등장하는 토큰 쌍: {max_pair}")
             logger.debug(f"가장 자주 등장하는 토큰 쌍 등장 횟수: {pair_freq[max_pair]}")
             logger.info(f"어휘 집합에 새로운 단어를 추가합니다. {max_pair}")
