@@ -1,5 +1,5 @@
 from collections import Counter
-from .tokenize import tokenize
+from .token import tokenize
 from .vocab import Vocabulary
 from .util import strip_token
 
@@ -10,8 +10,24 @@ logger = logging.getLogger(logger_name)
 
 # Instace 클래스 정의
 class Instance:
+    word_to_instance = {}
+    bigram_counter = Counter()
+    bigram_to_instances = {}
+
+    @classmethod
+    def clear_static_variables(cls):
+        cls.word_to_instance = {}
+        cls.bigram_counter = Counter()
+        cls.bigram_to_instances = {}
+
+    @classmethod
+    def clear_bigram_to_instances(cls):
+        cls.bigram_to_instances = {}
+
     def __init__(self, instance: str, instance_count: int):
         self.word = instance
+        self.__class__.word_to_instance[instance] = self
+
         logger.debug(f"{self.word} 인스턴스 생성")
 
         # 최초 토큰화(알파벳 단위)
@@ -21,14 +37,18 @@ class Instance:
         self.token_count = len(self.tokens)
         self.instance_count = instance_count
 
-    def tokenize(self, vocab: Vocabulary):
+        self.bigrams = self._create_bigrams()
+        self.bigram_count = self._count_bigrams(self.bigrams)
+
+    def tokenize(self, vocab: Vocabulary, mode: str):
         '''
         vocab (Vocabulary): 어휘 집합
+        mode (str): "train" or "test"
 
-        return (list): 토큰화된 인스턴스 ㅜ
+        return (list): 토큰화된 인스턴스
         '''
 
-        self.tokens = tokenize(self.word, vocab)
+        self.tokens = tokenize(self.word, vocab, mode)
         self.token_count = len(self.tokens)
 
         return self.token_count
@@ -36,29 +56,29 @@ class Instance:
     def get_tokens(self):
         return self.tokens
 
-    def _get_token_count(self, tokens: str):
+    def _count_subword(self, subword: str):
         '''
-        tokens (str): 토큰 목록
+        subword (str): 토큰 목록
 
         return (Counter): 토큰 목록과 각 토큰의 등장 횟수
         '''
 
         # 토큰 목록과 각 토큰의 등장 횟수 반환
-        # self.word.count(token) * self.instance_count 하는 이유: token이 단어 안에서 여러 번 반복될 수 있기 때문
+        # self.word.count(subword) * self.instance_count 하는 이유: subword가 단어 안에서 여러 번 반복될 수 있기 때문
 
         # Counter 생성과 값 조정을 한 번에 수행
-        counter = Counter({token: tokens.count(token) * self.instance_count for token in set(tokens)})
+        counter = Counter({subword: self.word.count(subword) * self.instance_count})
 
         return counter
 
     
-    def get_token_count(self):
+    def count_token(self):
         '''
         return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
         '''
-        return self._get_token_count(self.tokens)
+        return self._count_subword(self.tokens)
     
-    def _get_bigram_count(self, bigrams: list):
+    def _count_bigrams(self, bigrams: list):
         '''
         bigrams (list): [bigram1, bigram2, ...] 형식의 토큰 쌍 목록
 
@@ -74,6 +94,7 @@ class Instance:
         return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
         '''
         tokens = [strip_token(token) for token in self.tokens]
+        logger.debug(f"{self.word} 인스턴스의 토큰 목록: {tokens}")
 
         bigrams = []
         for i in range(len(tokens) - 1):
@@ -85,10 +106,7 @@ class Instance:
 
         return bigrams
     
-    def get_bigram_count(self):
-        '''
-        임의로 생성한 인접 토큰 쌍과 임의로 생성된 인접 토큰 쌍의 개수를 카운트
-        return (list): [(bigram1, count1), (bigram2, count2), ...] 형식의 토큰 쌍 목록과 각 토큰 쌍의 등장 횟수
+    def create_bigrams(self):
         '''
 
-        return self._get_bigram_count(self._create_bigrams())
+        '''

@@ -1,5 +1,6 @@
 from .trie import Trie
 from .util import strip_token
+from .token import Token
 
 import logging
 from .logger import logger_name
@@ -18,6 +19,7 @@ class Vocabulary:
         '''
         self.word_vocab = word_vocab
         self.subword_vocab = subword_vocab
+
         self.vocab = word_vocab + subword_vocab
         
         self.merge_rules = []
@@ -43,19 +45,19 @@ class Vocabulary:
     def get_subword_vocab(self):
         return self.subword_vocab
     
-    def get_token(self, word: str, to: str):
+    def get_token(self, word: str, _from: str):
         '''
             word (str): 토큰을 찾을 단어
-            to (str): 토큰을 찾을 곳
+            _from (str): 토큰을 찾을 곳
         '''
         ## 에러 처리 (한 번 호되게 당함..)
-        if to not in ["word", "subword"]:
+        if _from not in ["word", "subword"]:
             raise ValueError(f"word 또는 subword 중 하나를 입력해주세요.")
 
-        if to == "word":
-            return self.word_dict.get_token(word)
-        elif to == "subword":
-            return self.subword_dict.get_token(word)
+        if _from == "word":
+            return Token(self.word_dict.get_token(word), False)
+        elif _from == "subword":
+            return Token(self.subword_dict.get_token(word), True)
     
     def set_vocab(self, vocab: list, to: str):
         '''
@@ -91,14 +93,13 @@ class Vocabulary:
             self.subword_vocab.append(token)
             self.subword_dict.insert(token)
 
-    def add(self, token: str):
+    def add(self, token: Token):
         '''
             token (str): 추가할 토큰
         '''
-        _token = strip_token(token)
-
-        self.vocab.append(_token)
-        if token.startswith("[word]"):
+        self.vocab.append(token.string)
+        
+        if token.is_sub:
             self._add(_token, "word")
         else:
             self._add(_token, "subword")

@@ -2,7 +2,7 @@ from collections import Counter
 
 from .instance import Instance
 from .vocab import Vocabulary
-from .tokenize import pre_tokenize
+from .token import pre_tokenize
 from .util import strip_token
 
 import os
@@ -72,32 +72,31 @@ class BPE():
         precomputed_counts = Counter(tokenized_instances)
         instances = precomputed_counts.keys()
 
-        result = [self._build_instance_and_set_token_counter(instance, precomputed_counts[instance]) for instance in instances]
-
+        result = {instance: self._build_instance_and_set_token_counter(instance, precomputed_counts[instance]) for instance in instances}
         print("인스턴스 생성 완료")
 
-        return result        
+        return result
     
-    def _update_instances(self, instances: list, vocab: Vocabulary):
+    def _update_instances(self, instances: dict, target_instances: list, vocab: Vocabulary):
         '''
         새로운 vocab으로 다시 토큰화
 
-        instances (list): 인스턴스 목록
+        instances (dict): 인스턴스 목록
+        target_instances (list): 업데이트할 인스턴스 목록
         vocab (Vobaulary): 어휘 집합
 
         return (list, int): 업데이트된 인스턴스 목록, 시그마 instance 내부의 토큰의 수(1 이라면 훈련 종료) 
         '''
-        for instance in instances:
-            instance.tokenize(vocab)
 
-            ## 토큰 카운터 업데이트
-            self.instances_token_counter[instance] = instance.get_token_count()
+        for instance in target_instances:
+            instances[instance].tokenize(vocab)
+            self.instances_token_counter[instance] = instances[instance].get_token_count()
 
         return instances
 
-    def _build_base_vocab(self, corpus: str, instances: list) -> Vocabulary:
+    def _build_base_vocab(self, corpus: str, instances: dict) -> Vocabulary:
         '''
-        instances (list): 인스턴스 목록
+        instances (dict): 인스턴스 목록
 
         return (Vobaulary): 어휘 집합
         '''
@@ -112,9 +111,9 @@ class BPE():
 
         total = len(instances)
         i = 0
-        subword_vocab = []
-        for instance in instances:
-            vocabs = instance.get_tokens()
+        subword_vocab = word_vocab.copy()
+        for instance in instances.keys():
+            vocabs = instances[instance].get_tokens()
 
             for vocab in vocabs:
                 _vocab = strip_token(vocab)
@@ -191,8 +190,9 @@ class BPE():
             # 현 상황에서 가장 자주 등장하는 인접 토큰 쌍 찾기
             bigram_freq = Counter()
             for instance in instances:
-                _bigram_freq = instance.get_bigram_count()
-                # logger.debug(f"{instance.word}의 _bigram_freq: {_bigram_freq}")
+                _instance = instances[instance]
+                _bigram_freq = _instance.get_bigram_count()
+                # logger.debug(f"{_instance.word}의 _bigram_freq: {_bigram_freq}")
                 bigram_freq += _bigram_freq
 
                 # 역인덱싱
@@ -215,7 +215,7 @@ class BPE():
 
             logger.info("인스턴스 업데이트 진행")
             # 인스턴스 업데이트
-            instances = self._update_instances(bigram_to_instances[max_bigram], vocab)
+            instances = self._update_instances(instances, bigram_to_instances[max_bigram], vocab)
 
             train_loop_count += 1
 

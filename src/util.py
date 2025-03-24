@@ -15,4 +15,8 @@ def strip_token(token: str) -> str:
     토큰에서 양쪽 끝의 '[subword]' 또는 '[word]'를 제거
     return (str): 제거된 토큰
     '''
-    return token.lstrip('[subword]').lstrip('[word]')
+    if token.startswith('[subword]'):
+        _token = token[9:]
+    else:
+        _token = token[6:]
+    return _token
