@@ -1,6 +1,6 @@
 from collections import Counter
 from .tokenize import tokenize
-from .vocab import Vobaulary
+from .vocab import Vocabulary
 
 import logging
 from .logger import logger_name
@@ -22,9 +22,9 @@ class Instance:
         self.token_count = len(self.tokens)
         self.instance_count = instance_count
 
-    def tokenize(self, vocab: Vobaulary):
+    def tokenize(self, vocab: Vocabulary):
         '''
-        vocab (Vobaulary): 어휘 집합
+        vocab (Vocabulary): 어휘 집합
 
         return (list): 토큰화된 인스턴스 ㅜ
         '''

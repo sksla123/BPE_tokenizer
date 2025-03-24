@@ -28,10 +28,10 @@ def pre_tokenize(corpus: str, method: str = "whitespace"):
         raise ValueError(f"지원하지 않는 pre-tokenize 방법입니다. {method}\n 지원하는 메소드 목록: [whitespace]")
 
 ## 토큰화 함수 정의
-def tokenize(word: str, vocab: Vobaulary, mode: str = "infer"):
+def tokenize(word: str, vocab: Vocabulary, mode: str = "infer"):
     '''
     word (str): 토큰화할 단어
-    vocab (Vobaulary): 어휘 집합
+    vocab (Vocabulary): 어휘 집합
     mode (str): 토큰화 모드 [train, infer]
     
     return (list): 토큰화된 단어

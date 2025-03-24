@@ -95,7 +95,7 @@ class BPE():
 
         return instances
 
-    def _build_base_vocab(self, corpus: str, instances: list) -> Vobaulary:
+    def _build_base_vocab(self, corpus: str, instances: list) -> Vocabulary:
         '''
         instances (list): 인스턴스 목록
 
