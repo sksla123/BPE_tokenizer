@@ -38,7 +38,7 @@ parser.add_argument('--output', type=str, help='추론된 결과를 저장할 �
 
 args = parser.parse_args()
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("BPE Tokenizer")
 logger.setLevel(logging.DEBUG)
 
 log_file_path = f"./Log/{get_kst_timestamp()}.log"
@@ -213,7 +213,7 @@ class Instance:
         '''
         vocab (Vobaulary): 어휘 집합
 
-        return (list): 토큰화된 인스턴스
+        return (list): 토큰화된 인스턴스 ㅜ 
         '''
 
         self.tokens = tokenize(self.word, vocab)
