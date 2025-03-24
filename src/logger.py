@@ -1,13 +1,13 @@
 logger_name = "BPE Tokenizer"
 
-log_file_path = f"./logs/{get_kst_timestamp()}.log"
-file_handler = logging.FileHandler(log_file_path)
-
 import os
 import sys
 import logging
 
 from .util import get_kst_timestamp
+
+log_file_path = f"./logs/{get_kst_timestamp()}.log"
+file_handler = logging.FileHandler(log_file_path)
 
 def init_logger(logger):
     logger.setLevel(logging.DEBUG)
