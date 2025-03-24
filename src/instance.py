@@ -63,6 +63,7 @@ class Instance:
         self.bigram_count = self._count_bigrams(self.bigrams)
 
         self.__class__.bigram_counter -= old_bigram_count
+        self.__class__.bigram_counter += self.bigram_count
 
         return self.token_count
 
@@ -84,7 +85,6 @@ class Instance:
 
         return counter
 
-    
     def count_token(self):
         '''
         return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
