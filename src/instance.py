@@ -1,5 +1,5 @@
 from collections import Counter
-from .token import tokenize
+from .token import tokenize, Token
 from .vocab import Vocabulary
 from .util import strip_token
 
@@ -14,15 +14,18 @@ class Instance:
     is_word_available_creating_bigram = {}
     bigram_counter = Counter()
 
+    updated_instances = [] ## 나중에 멀티프로세싱을 염두에 두고 만든 변수
+
     @classmethod
     def clear_static_variables(cls):
         cls.word_to_instance = {}
         cls.bigram_counter = Counter()
         cls.is_word_available_creating_bigram = {}
-
-    def __init__(self, instance: str, instance_count: int):
-        self.word = instance
-        self.__class__.word_to_instance[instance] = self
+        cls.updated_instances = []
+    
+    def __init__(self, instance_string: str, instance_count: int):
+        self.word = instance_string
+        self.__class__.word_to_instance[self.word] = self
 
         logger.debug(f"{self.word} 인스턴스 생성")
 
@@ -40,10 +43,8 @@ class Instance:
 
         self.instance_count = instance_count
 
-        self.bigrams = self._create_bigrams()
-        self.bigram_count = self._count_bigrams(self.bigrams)
-
-        self.reverse_indexing()
+        self.bigrams = self.create_bigrams()
+        self.bigram_count = self.count_bigrams()
 
     def tokenize(self, vocab: Vocabulary, mode: str):
         '''
@@ -56,16 +57,22 @@ class Instance:
         self.tokens = tokenize(self.word, vocab, mode)
         self.token_count = len(self.tokens)
 
-        old_bigrams = self.bigrams
+        ## bigrams 업데이트
         old_bigram_count = self.bigram_count
 
         self.bigrams = self._create_bigrams()
         self.bigram_count = self._count_bigrams(self.bigrams)
 
-        self.__class__.bigram_counter -= old_bigram_count
-        self.__class__.bigram_counter += self.bigram_count
+        ## bigram_counter 변화량
+        delta_bigram_count = self.bigram_count.subtract(old_bigram_count)
 
-        return self.token_count
+        ## 전체 bigram_counter 업데이트
+        self.__class__.bigram_counter -= delta_bigram_count
+
+        ## 업데이트된 인스턴스 목록에 추가
+        self.__class__.updated_instances.append(self.word)
+
+        return delta_bigram_count ## 추후 멀티프로세싱을 염두에 두고 반환
 
     def get_tokens(self):
         return self.tokens
@@ -85,39 +92,40 @@ class Instance:
 
         return counter
 
-    def count_token(self):
+    def count_tokens(self):
         '''
         return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
         '''
         return self._count_subword(self.tokens)
     
-    def _count_bigrams(self, bigrams: list):
+    def count_bigrams(self):
         '''
         bigrams (list): [bigram1, bigram2, ...] 형식의 토큰 쌍 목록
 
         return (list): [(bigram1, count1), (bigram2, count2), ...] 형식의 토큰 쌍 목록과 각 토큰 쌍의 등장 횟수
         '''
 
-        return self._get_token_count(bigrams)
+        return self._count_subword(self.bigrams)
 
-    def _create_bigrams(self):
+    def create_bigrams(self):
         '''
         현재 토큰을 가지고 인스턴스 내부에서 인접 토큰들과 연결하여, 임의의 토큰 쌍(bigram)을 생성하는 함수
 
         return (list): [pair1, pair2, ...] 형식의 토큰 쌍 목록
         '''
-        tokens = [strip_token(token) for token in self.tokens]
-        logger.debug(f"{self.word} 인스턴스의 토큰 목록: {tokens}")
+        logger.debug(f"{self.word} 인스턴스의 토큰 목록: {self.tokens}")
 
         bigrams = []
-        for i in range(len(tokens) - 1):
+        for i in range(len(self.tokens) - 1):
             if i == 0:
-                bigrams.append('[word]' + tokens[i] + tokens[i + 1])
+                bigrams.append(Token(self.tokens[i].string + self.tokens[i + 1].string, False))
             else:
-                bigrams.append('[subword]' + tokens[i] + tokens[i + 1])       
-        # logger.debug(f"{self.word} 인스턴스의 인접 토큰 쌍 (bigrams): {bigrams}")
+                bigrams.append(Token(self.tokens[i].string + self.tokens[i + 1].string, True))
 
         return bigrams
+
+    def _count_bigrams(self):
+        return self._count_subword(self.bigrams)
     
     def create_bigrams(self):
         '''
