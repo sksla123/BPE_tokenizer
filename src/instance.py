@@ -11,18 +11,14 @@ logger = logging.getLogger(logger_name)
 # Instace 클래스 정의
 class Instance:
     word_to_instance = {}
+    is_word_available_creating_bigram = {}
     bigram_counter = Counter()
-    bigram_to_instances = {}
 
     @classmethod
     def clear_static_variables(cls):
         cls.word_to_instance = {}
         cls.bigram_counter = Counter()
-        cls.bigram_to_instances = {}
-
-    @classmethod
-    def clear_bigram_to_instances(cls):
-        cls.bigram_to_instances = {}
+        cls.is_word_available_creating_bigram = {}
 
     def __init__(self, instance: str, instance_count: int):
         self.word = instance
@@ -35,10 +31,19 @@ class Instance:
         logger.debug(f"{self.word}의 최초 토큰화 결과 -> {self.tokens}")
 
         self.token_count = len(self.tokens)
+
+        ## 내부적으로 토큰 수가 1개라면 더 이상 바이그램 생성이 불가능
+        if self.token_count == 1:
+            self.__class__.is_word_available_creating_bigram[self.word] = True
+        else:
+            self.__class__.is_word_available_creating_bigram[self.word] = False
+
         self.instance_count = instance_count
 
         self.bigrams = self._create_bigrams()
         self.bigram_count = self._count_bigrams(self.bigrams)
+
+        self.reverse_indexing()
 
     def tokenize(self, vocab: Vocabulary, mode: str):
         '''
@@ -50,6 +55,14 @@ class Instance:
 
         self.tokens = tokenize(self.word, vocab, mode)
         self.token_count = len(self.tokens)
+
+        old_bigrams = self.bigrams
+        old_bigram_count = self.bigram_count
+
+        self.bigrams = self._create_bigrams()
+        self.bigram_count = self._count_bigrams(self.bigrams)
+
+        self.__class__.bigram_counter -= old_bigram_count
 
         return self.token_count
 
