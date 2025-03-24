@@ -1,15 +1,16 @@
-from .Trie import Trie, TrieNode
+from .trie import Trie
 
 import logging
+from .logger import logger_name
 
-logger = logging.getLogger("BPE Tokenizer")
+logger = logging.getLogger(logger_name)
 
 # 어휘 집합 클래스
 class Vobaulary:
     '''
     어휘 집합을 관리하는 클래스
     '''
-    def __init__(self, vocab: list):
+    def __init__(self):
         '''
             vocab (list): 기본 어휘 집합
         '''
@@ -18,7 +19,6 @@ class Vobaulary:
 
         self.word_dict = Trie()
         self.subword_dict = Trie()
-        self.set_vocab(vocab)
 
     def __str__(self):
         return f"Word Vocabulary: {self.word_vocab}\nSubword Vocabulary: {self.subword_vocab}"
@@ -42,7 +42,7 @@ class Vobaulary:
         '''
         ## 에러 처리 (한 번 호되게 당함..)
         if to not in ["word", "subword"]:
-            raise ValueError(f"Invalid target: {to}. Must be 'word' or 'subword'.")
+            raise ValueError(f"word 또는 subword 중 하나를 입력해주세요.")
 
         if to == "word":
             return self.word_dict.get_token(word)
@@ -56,7 +56,7 @@ class Vobaulary:
         '''
         ## 에러 처리 (한 번 호되게 당함..)
         if to not in ["word", "subword"]:
-            raise ValueError(f"Invalid target: {to}. Must be 'word' or 'subword'.")
+            raise ValueError(f"word 또는 subword 중 하나를 입력해주세요.")
 
         if to == "word":
             self.word_vocab.extend(vocab)
@@ -74,7 +74,7 @@ class Vobaulary:
         '''
         ## 에러 처리 (한 번 호되게 당함..)
         if to not in ["word", "subword"]:
-            raise ValueError(f"Invalid target: {to}. Must be 'word' or 'subword'.")
+            raise ValueError(f"word 또는 subword 중 하나를 입력해주세요.")
 
         if to == "word":
             self.word_vocab.append(token)
@@ -85,17 +85,20 @@ class Vobaulary:
 
 ## trie 자료구조 테스트용 코드
 def main():
-    vocab = ["hello", "world", "hello_world"]
-    print("기본 어휘 집합: ", vocab)
+    word_vocab_input = ["hello", "world", "hello_world"]
+    subword_vocab_input = ["he", "ll", "o", "wo", "rld", "hel", "lo_", "wor", "ld"]
 
-    vocab_obj = Vobaulary(vocab)
-    print(vocab_obj)
+    vocab = Vobaulary()
+    vocab.set_vocab(word_vocab_input, "word")
+    vocab.set_vocab(subword_vocab_input, "subword")
+    
+    print(vocab)
 
-    vocab_obj.add("hello", "subword")
-    print(vocab_obj)
+    vocab.add("hi", "word")
+    print(vocab)
 
-    print(vocab_obj.get_token("hello", "word"))
-    print(vocab_obj.get_token("hello", "subword"))
+    print("문자열 hello의 word 토큰: ", vocab.get_token("hello", "word"))
+    print("문자열 hello의 subword 토큰: ", vocab.get_token("hello", "subword"))
 
 if __name__ == "__main__":
     main()

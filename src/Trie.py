@@ -5,34 +5,43 @@ import logging
 logger = logging.getLogger("BPE Tokenizer")
 
 class TrieNode:
-    def __init__(self):
+    def __init__(self, char: str):
+        '''
+        char (str): 현재 노드의 문자
+
+        만약 본인이 root라면 해당 문자열은 ""이다.
+        '''
+        self.char = char
         self.children = {}
         self.is_end_of_word = False
 
 class Trie:
     def __init__(self):
-        self.root = TrieNode()
+        """
+        Trie 클래스는 트라이 자료구조를 관리합니다.
+        """
+        self.root = TrieNode("")  # 루트 노드는 빈 문자열로 초기화
 
-    def insert(self, word):
-        '''
-            word (str): 삽입할 단어
-        '''
+    def insert(self, word: str):
+        """
+        단어를 트라이에 삽입합니다.
+        
+        word (str): 삽입할 단어
+        """
         node = self.root
         for char in word:
             if char not in node.children:
-                node.children[char] = TrieNode()
+                node.children[char] = TrieNode(char)  # 현재 문자를 가진 새 노드 생성
             node = node.children[char]
-        node.is_end_of_word = True
+        node.is_end_of_word = True  # 단어가 끝나는 위치 표시
 
     def find_prefix_node(self, word: str):
         """
         입력 단어와 일치하는 가장 깊은 노드를 찾습니다.
         
-        Args:
-            word (str): 탐색할 단어
+        word (str): 탐색할 단어
         
-        Returns:
-            Tuple[TrieNode, str]: 마지막으로 탐색된 노드와 현재까지의 접두사
+        return (TrieNode, str): 마지막으로 탐색된 노드와 현재까지의 접두사
         """
         node = self.root
         prefix = ""
@@ -50,12 +59,11 @@ class Trie:
         """
         주어진 노드에서 가장 긴 일치 문자열을 찾습니다.
         
-        Args:
-            node (TrieNode): 탐색 시작 노드
-            prefix (str): 현재까지의 접두사
         
-        Returns:
-            str: 가장 긴 일치 문자열
+        node (TrieNode): 탐색 시작 노드
+        prefix (str): 현재까지의 접두사
+        
+        return (str): 가장 긴 일치 문자열
         """
         longest_match = ""
         
@@ -68,8 +76,8 @@ class Trie:
             if current_node.is_end_of_word and len(current_prefix) > len(longest_match):
                 longest_match = current_prefix
             
-            for char, child_node in current_node.children.items():
-                stack.append((child_node, current_prefix + char))
+            for child_node in current_node.children.values():
+                stack.append((child_node, current_prefix + child_node.char))
         
         return longest_match
 
@@ -78,11 +86,9 @@ class Trie:
         입력된 단어와 시작 알파벳부터 일치하는 값을 모두 탐색하고,
         그 중 가장 긴 단어를 반환합니다.
         
-        Args:
-            word (str): 검색할 단어
+        word (str): 탐색할 단어
         
-        Returns:
-            str: 입력 단어와 일치하는 가장 긴 토큰 (없으면 빈 문자열 반환)
+        return (str): 가장 긴 일치 문자열
         """
         # 1. 접두사와 일치하는 가장 깊은 노드 찾기
         node, prefix = self.find_prefix_node(word)
