@@ -57,6 +57,12 @@ def main():
         bpe = BPE(config_data)
         bpe.train_bpe()
         bpe.save_vocab(bpe.vocab)
+    elif mode == "infer":
+        logger.info("추론 모드로 프로그램이 동작합니다.")
+
+        bpe = BPE(config_data)
+        infer_output = bpe.infer()
+        bpe.save_infer_output(infer_output)
 
 if __name__ == "__main__":
     main()

@@ -9,3 +9,13 @@ def get_kst_timestamp() -> str:
     '''
     kst_time = datetime.now(ZoneInfo("Asia/Seoul"))
     return kst_time.strftime("%Y%m%d%H%M%S")
+
+from .token import Token
+
+def token_to_string(token: Token) -> str:
+    '''
+    토큰을 문자열로 변환
+    return (str): 토큰 목록을 문자열로 변환한 결과
+    '''
+
+    return "##" + token.string if token.is_sub else token.string

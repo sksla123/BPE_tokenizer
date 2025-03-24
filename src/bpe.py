@@ -4,8 +4,10 @@ from .instance import Instance
 from .tokenize import pre_tokenize
 from .token import Token
 from .vocab import Vocabulary
+from .util import token_to_string
 
 import os
+import json
 
 import logging
 from .logger import logger_name
@@ -189,10 +191,16 @@ class BPE():
 
         logger.info(f"어휘 집합을 저장합니다. {self.vocab_save_path}")
         logger.info(f"어휘 집합 크기: {len(vocab)}")
+
+        vocab_dict = {}
+        vocab_dict["word_vocab"] = self.vocab.get_word_vocab()
+        vocab_dict["subword_vocab"] = self.vocab.get_subword_vocab()
+        
         os.makedirs(os.path.dirname(self.vocab_save_path), exist_ok=True)
+        
         with open(self.vocab_save_path, 'w') as f:
-            for voc in vocab.get_vocab():
-                f.write(voc + '\n')
+            json.dump(vocab_dict, f)
+        
         logger.info(f"어휘 집합 저장 완료")
 
     def load_vocab(self, vocab_path: str) -> Vocabulary:
@@ -208,7 +216,10 @@ class BPE():
         
         logger.info(f"어휘 집합을 로딩합니다. {vocab_path}")
         with open(vocab_path, 'r') as f:
-            vocab = f.read().splitlines()
+            vocab_dict = json.load(f)
+        
+        vocab = Vocabulary(vocab_dict["word_vocab"], vocab_dict["subword_vocab"])
+        
         logger.info(f"어휘 집합 로딩 완료")
         logger.debug(f"어휘 집합 크기: {len(vocab)}")
 
@@ -227,3 +238,45 @@ class BPE():
         logger.info(f"추론에 사용할 어휘 집합을 로딩합니다. {self.infer_vocab_path}")
         self.vocab = self.load_vocab(self.infer_vocab_path)
         logger.info(f"추론에 사용할 어휘 집합 로딩 완료")
+
+        logger.info("추론할 input_data 로딩")
+        tokenized_instances = pre_tokenize(input_data, method="whitespace")
+        logger.info(f"추론할 input_data 로딩 완료")
+
+        logger.info("추론 진행")
+        infer_output = self._infer(tokenized_instances)
+        logger.info("추론 완료")
+
+        self._save_infer_output(infer_output)
+
+        return infer_output
+
+    def _infer(self, tokenized_instances: list):
+        '''
+        tokenized_instances (list): 토큰화된 인스턴스 목록
+        '''
+
+        Instance.init_static_variables()
+
+        infer_tokens_list = []
+
+        for instance in tokenized_instances:
+            inst = Instance(instance, 1)
+            inst.tokenize(self.vocab, mode="infer")
+            infer_output.append(inst.get_tokens())
+        
+        infer_output = ""
+        for infer_tokens in infer_output:
+            infer_output += " ".join([token_to_string(token) for token in infer_tokens])
+            infer_output += "\n"
+
+        return infer_output
+
+    def save_infer_output(self, infer_output: str):
+        '''
+        infer_output (str): 추론 결과
+        '''
+
+        logger.info(f"추론 결과를 저장합니다. {self.tokenized_result_path}")
+        with open(self.tokenized_result_path, 'w') as f:
+            f.write(infer_output)
