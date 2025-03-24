@@ -8,56 +8,94 @@ logger = logging.getLogger("BPE Tokenizer")
 class Vobaulary:
     '''
     어휘 집합을 관리하는 클래스
-    항상 정렬된 어휘 집합을 유지하기 위해 생성
     '''
     def __init__(self, vocab: list):
-        self.vocab = []
+        '''
+            vocab (list): 기본 어휘 집합
+        '''
+        self.word_vocab = []
+        self.subword_vocab = []
 
-        self.start_vocab = []
-        self.hashed_vocab = []
-
+        self.word_dict = Trie()
+        self.subword_dict = Trie()
         self.set_vocab(vocab)
 
     def __str__(self):
-        return f"Vocabulary: {self.vocab}"
+        return f"Word Vocabulary: {self.word_vocab}\nSubword Vocabulary: {self.subword_vocab}"
 
     def __len__(self):
-        return len(self.vocab)
+        return len(self.word_vocab) + len(self.subword_vocab)
 
     def get_vocab(self):
-        return self.vocab
-
-    def get_hashed_vocab_start_idx(self):
-        return self.hashed_vocab_start_idx
+        return self.word_vocab + self.subword_vocab
     
-    def get_start_vocab(self):
-        return self.start_vocab
+    def get_word_vocab(self):
+        return self.word_vocab
     
-    def get_hashed_vocab(self):
-        return self.hashed_vocab
+    def get_subword_vocab(self):
+        return self.subword_vocab
     
-    def set_vocab(self, vocab: list):
+    def get_token(self, word: str, to: str):
         '''
-        어휘 집합을 설정하는 함수
-        어휘 집합을 정렬하고, 해쉬로 시작하는 보캡의 위치를 찾아서 시작 보캡과 해쉬 보캡을 분리
-
-        vocab (list): 어휘 집합
+            word (str): 토큰을 찾을 단어
+            to (str): 토큰을 찾을 곳
         '''
-        self.vocab = self._sort_vocab(list(set(vocab)))
+        ## 에러 처리 (한 번 호되게 당함..)
+        if to not in ["word", "subword"]:
+            raise ValueError(f"Invalid target: {to}. Must be 'word' or 'subword'.")
 
-
-
-        ## 해쉬로 시작하는 보캡의 위치를 찾기
-        ## 그냥 for 문은 느릴 거 같아서 next 함수를 이용
-        self.hashed_vocab_start_idx = next((idx for idx, voc in enumerate(self.vocab) if voc.startswith('##')), -1)
-        ## 시작 보캡과 해쉬 보캡 분리
-        self.start_vocab = self.vocab[:self.hashed_vocab_start_idx]
-        self.hashed_vocab = self.vocab[self.hashed_vocab_start_idx:]
+        if to == "word":
+            return self.word_dict.get_token(word)
+        elif to == "subword":
+            return self.subword_dict.get_token(word)
     
-    def add(self, vocab: str):
+    def set_vocab(self, vocab: list, to: str):
         '''
-        어휘 집합에 새로운 단어를 추가하는 함수
+            vocab (list): 어휘 집합
+            to (str): 어휘 집합을 추가할 곳
         '''
-        logger.debug(f"어휘 집합에 추가된 새로운 단어: {vocab}")
-        self.vocab.append(vocab)
-        self.set_vocab(self.vocab)
+        ## 에러 처리 (한 번 호되게 당함..)
+        if to not in ["word", "subword"]:
+            raise ValueError(f"Invalid target: {to}. Must be 'word' or 'subword'.")
+
+        if to == "word":
+            self.word_vocab.extend(vocab)
+            for word in vocab:
+                self.word_dict.insert(word)
+        elif to == "subword":
+            self.subword_vocab.extend(vocab)
+            for subword in vocab:
+                self.subword_dict.insert(subword)
+    
+    def add(self, token: str, to: str):
+        '''
+            token (str): 추가할 토큰
+            to (str): 토큰을 추가할 곳
+        '''
+        ## 에러 처리 (한 번 호되게 당함..)
+        if to not in ["word", "subword"]:
+            raise ValueError(f"Invalid target: {to}. Must be 'word' or 'subword'.")
+
+        if to == "word":
+            self.word_vocab.append(token)
+            self.word_dict.insert(token)
+        elif to == "subword":
+            self.subword_vocab.append(token)
+            self.subword_dict.insert(token)
+
+## trie 자료구조 테스트용 코드
+def main():
+    vocab = ["hello", "world", "hello_world"]
+    print("기본 어휘 집합: ", vocab)
+
+    vocab_obj = Vobaulary(vocab)
+    print(vocab_obj)
+
+    vocab_obj.add("hello", "subword")
+    print(vocab_obj)
+
+    print(vocab_obj.get_token("hello", "word"))
+    print(vocab_obj.get_token("hello", "subword"))
+
+if __name__ == "__main__":
+    main()
