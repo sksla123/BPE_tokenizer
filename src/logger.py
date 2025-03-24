@@ -36,3 +36,7 @@ def init_logger(logger):
 def disable_file_logger(logger):
     file_handler.setLevel(logging.CRITICAL + 1)  # 파일 핸들러 비활성화 (모든 로그 무시)
     logger.info("파일 로깅 비활성화")  # stdout으로만 출력됨
+
+def set_log_level(logger, level):
+    file_handler.setLevel(level)
+    logger.info(f"로그 레벨 설정: {level}")

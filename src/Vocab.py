@@ -1,5 +1,4 @@
 from .trie import Trie
-from .util import strip_token
 from .token import Token
 
 import logging
@@ -45,16 +44,22 @@ class Vocabulary:
     def get_subword_vocab(self):
         return self.subword_vocab
     
-    def get_token(self, word: str, _from: str):
+    def get_token(self, word: str, _from: str, method:str = "longest_matching"):
         '''
             word (str): 토큰을 찾을 단어
             _from (str): 토큰을 찾을 곳
+    
+            method (str): 토큰을 찾을 방법 ## 아니 첨에 병합규칙이 뭔질 몰라서 그냥 longest matching으로 했는데 병합규칙 으아아악 개 핵 느려서 Trie 구조 개열심히 공부했는데 쓸모 없어지고 그냥 죽고싶다
         '''
         ## 에러 처리 (한 번 호되게 당함..)
         if _from not in ["word", "subword"]:
             raise ValueError(f"word 또는 subword 중 하나를 입력해주세요.")
 
+        # logger.debug(f"[{_from} 사전] {word} 토큰 찾기")
         if _from == "word":
+        #     logger.debug(f"[{_from} 사전], {self.word_vocab}")
+        #     logger.debug(f"[{_from} 사전] {word} 토큰 찾기 완료")
+        #     logger.debug(f"[{_from} 사전] {word} 토큰: {self.word_dict.get_token(word)}")
             return Token(self.word_dict.get_token(word), False)
         elif _from == "subword":
             return Token(self.subword_dict.get_token(word), True)
@@ -77,9 +82,9 @@ class Vocabulary:
             for subword in vocab:
                 self.subword_dict.insert(subword)
     
-    def _add(self, token: str, to: str):
+    def _add(self, token_string: str, to: str):
         '''
-            token (str): 추가할 토큰
+            token_string (str): 추가할 토큰
             to (str): 토큰을 추가할 곳
         '''
         ## 에러 처리 (한 번 호되게 당함..)
@@ -87,11 +92,11 @@ class Vocabulary:
             raise ValueError(f"word 또는 subword 중 하나를 입력해주세요.")
 
         if to == "word":
-            self.word_vocab.append(token)
-            self.word_dict.insert(token)
+            self.word_vocab.append(token_string)
+            self.word_dict.insert(token_string)
         elif to == "subword":
-            self.subword_vocab.append(token)
-            self.subword_dict.insert(token)
+            self.subword_vocab.append(token_string)
+            self.subword_dict.insert(token_string)
 
     def add(self, token: Token):
         '''
@@ -100,9 +105,9 @@ class Vocabulary:
         self.vocab.append(token.string)
         
         if token.is_sub:
-            self._add(_token, "word")
+            self._add(token.string, "subword")
         else:
-            self._add(_token, "subword")
+            self._add(token.string, "word")
 
 ## trie 자료구조 테스트용 코드
 def main():
@@ -113,7 +118,7 @@ def main():
     
     print(vocab)
 
-    vocab.add("[word]hi")
+    vocab.add(Token("hi", False))
     print(vocab)
 
     print("문자열 hello의 word 토큰: ", vocab.get_token("hello", "word"))

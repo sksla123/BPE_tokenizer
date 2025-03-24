@@ -1,9 +1,9 @@
 from collections import Counter
 
 from .instance import Instance
+from .tokenize import pre_tokenize
+from .token import Token
 from .vocab import Vocabulary
-from .token import pre_tokenize
-from .util import strip_token
 
 import os
 
@@ -43,60 +43,34 @@ class BPE():
 
         return corpus
     
-    def _build_instance_and_set_token_counter(self, instance: str, instance_count: int) -> Instance:
-        '''
-        이거 그냥 불러오면 오류일으킴
-
-        instance (str): 인스턴스
-        instance_count (int): 인스턴스 개수
-
-        return (list): 인스턴스 목록
-        '''
-
-        _instance = Instance(instance, instance_count)
-        self.instances_token_counter[instance] = _instance.get_token_count()
-       
-        return _instance
-
-    def _build_instances(self, tokenized_instances: list) -> list:
+    def _build_instances(self, tokenized_instances: list):
         '''
         tokenized_instances (list): 토큰화된 인스턴스 목록
-
-        return (list): 인스턴스 목록
         '''
 
-        ## 인스턴스 토큰 카운터가 초기화되지 않았다면 오류 발생
-        if self.instances_token_counter is None:
-            raise ValueError("인스턴스 토큰 카운터가 초기화되지 않았습니다.")
-
+        Instance.init_static_variables()
         precomputed_counts = Counter(tokenized_instances)
-        instances = precomputed_counts.keys()
 
-        result = {instance: self._build_instance_and_set_token_counter(instance, precomputed_counts[instance]) for instance in instances}
+        for instance in precomputed_counts.keys():
+            Instance(instance, precomputed_counts[instance])
+
         print("인스턴스 생성 완료")
-
-        return result
     
-    def _update_instances(self, instances: dict, target_instances: list, vocab: Vocabulary):
+    def _update_instances(self, max_bigram: Token, vocab: Vocabulary):
         '''
         새로운 vocab으로 다시 토큰화
 
-        instances (dict): 인스턴스 목록
         target_instances (list): 업데이트할 인스턴스 목록
         vocab (Vobaulary): 어휘 집합
 
         return (list, int): 업데이트된 인스턴스 목록, 시그마 instance 내부의 토큰의 수(1 이라면 훈련 종료) 
         '''
+        Instance.init_updated_instances()
+        Instance.update_instances(max_bigram, vocab, mode="train")
 
-        for instance in target_instances:
-            instances[instance].tokenize(vocab)
-            self.instances_token_counter[instance] = instances[instance].get_token_count()
-
-        return instances
-
-    def _build_base_vocab(self, corpus: str, instances: dict) -> Vocabulary:
+    def _build_base_vocab(self, corpus: str) -> Vocabulary:
         '''
-        instances (dict): 인스턴스 목록
+        instances (list): 인스턴스 목록
 
         return (Vobaulary): 어휘 집합
         '''
@@ -109,19 +83,17 @@ class BPE():
         # 화이트 스페이스 문자 제거
         word_vocab = [voc if voc not in whitespace_chars else voc for voc in set(word_vocab)]
 
-        total = len(instances)
+        total = len(Instance.word_to_instance.values())
         i = 0
         subword_vocab = word_vocab.copy()
-        for instance in instances.keys():
-            vocabs = instances[instance].get_tokens()
+        for instance in Instance.word_to_instance.values():
+            base_tokens = instance.get_tokens()
 
-            for vocab in vocabs:
-                _vocab = strip_token(vocab)
-
-                if vocab.startswith("[word]"):
-                    word_vocab.append(_vocab)
+            for base_token in base_tokens:
+                if base_token.is_sub:
+                    subword_vocab.append(base_token.string)
                 else:
-                    subword_vocab.append(_vocab)
+                    word_vocab.append(base_token.string)
             
             i += 1
             print(f"\r각 instance로 부터 vocab 생성 중 {i} / {total}", end="")
@@ -130,6 +102,7 @@ class BPE():
 
         word_vocab = list(set(word_vocab))
         subword_vocab = list(set(subword_vocab))
+
         base_vocab = Vocabulary(word_vocab, subword_vocab)        
 
         return base_vocab
@@ -164,14 +137,13 @@ class BPE():
         '''
 
         vocab_size = self.vocab_size
-        self.instances_token_counter = Counter()
 
         logger.info(f"초기 인스턴스 생성 중 ...")
-        instances = self._build_instances(tokenized_instances)
+        self._build_instances(tokenized_instances)
         logger.info(f"초기 인스턴스 생성 완료")
 
         logger.info(f"초기 어휘 집합 생성 중 ...")
-        vocab = self._build_base_vocab(self.train_corpus, instances)
+        vocab = self._build_base_vocab(self.train_corpus)
         logger.info(f"초기 어휘 집합 생성 완료")
 
         train_loop_count = 0
@@ -182,46 +154,28 @@ class BPE():
             # logger.debug(f"현재 어휘 집합: {vocab}") ## 로그 파일 크기가 너무 커짐
 
             logger.info(f"현재 상황에서 가장 자주 등장하는 인접 토큰 쌍 검색 중 ...")
-            
-            # 역인덱싱(instance 업데이트 과정에서 속도 증강을 위함)
-            # bigram to instance 매핑
-            bigram_to_instances = {}
-
-            # 현 상황에서 가장 자주 등장하는 인접 토큰 쌍 찾기
-            bigram_freq = Counter()
-            for instance in instances:
-                _instance = instances[instance]
-                _bigram_freq = _instance.get_bigram_count()
-                # logger.debug(f"{_instance.word}의 _bigram_freq: {_bigram_freq}")
-                bigram_freq += _bigram_freq
-
-                # 역인덱싱
-                for bigram in _bigram_freq:
-                    if bigram not in bigram_to_instances:
-                        bigram_to_instances[bigram] = [instance]
-                    else:
-                        bigram_to_instances[bigram].append(instance)
-            # logger.debug(f"bigram_freq: {bigram_freq}")
 
             # 가장 자주 등장하는 인접 토큰 쌍 찾기
-            max_bigram = bigram_freq.most_common(1)[0][0]
+            logger.debug(f"Instance.bigram_counter: {Instance.bigram_counter}")
+            if len(Instance.bigram_counter.keys()) == 0:
+                logger.info("더 이상 bigram을 생성할 수 없어 훈련 종료(전체 인스턴스에 대한 vocab 생성 완료)")
+                break
+
+            max_bigram = Instance.bigram_counter.most_common(1)[0][0]
             logger.info(f"가장 자주 등장하는 토큰 쌍 검색 완료")
-            logger.info(f"가장 자주 등장하는 토큰 쌍: {max_bigram}, {bigram_freq[max_bigram]}")
+            logger.info(f"가장 자주 등장하는 토큰 쌍: {max_bigram}, {Instance.bigram_counter[max_bigram]}")
             logger.info(f"어휘 집합에 새로운 단어를 추가합니다. {max_bigram}")
 
             # 가장 자주 등장하는 인접 토큰 쌍을 vocab에 추가
             vocab.add(max_bigram)
             logger.debug(f"변화된 어휘 집합 크기: {len(vocab)}")
+            # logger.debug(f"변화된 어휘 집합: \n{vocab.get_vocab()}")
 
             logger.info("인스턴스 업데이트 진행")
             # 인스턴스 업데이트
-            instances = self._update_instances(instances, bigram_to_instances[max_bigram], vocab)
+            self._update_instances(max_bigram, vocab)
 
             train_loop_count += 1
-
-            if all(value == 1 for value in self.instances_token_counter.values()):
-                logger.info("더 이상 instance를 토큰화하는 것이 불가능하여 훈련 종료")
-                break
 
         logger.info(f"훈련 종료, 최종 훈련 반복 횟수: {train_loop_count}")
         logger.debug(f"훈련 종료 후 어휘 집합: {vocab}")

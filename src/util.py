@@ -9,14 +9,3 @@ def get_kst_timestamp() -> str:
     '''
     kst_time = datetime.now(ZoneInfo("Asia/Seoul"))
     return kst_time.strftime("%Y%m%d%H%M%S")
-
-def strip_token(token: str) -> str:
-    '''
-    토큰에서 양쪽 끝의 '[subword]' 또는 '[word]'를 제거
-    return (str): 제거된 토큰
-    '''
-    if token.startswith('[subword]'):
-        _token = token[9:]
-    else:
-        _token = token[6:]
-    return _token

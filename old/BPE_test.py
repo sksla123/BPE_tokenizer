@@ -22,7 +22,7 @@ def get_kst_timestamp() -> str:
 parser = argparse.ArgumentParser(prog="BPE Tokenizer")
 
 ## 디버그용 로그 설정
-parser.add_argument('--log', action="store_true", help='학습에 사용할 코퍼스 파일 위치')
+parser.add_argument('--log', type=str, help='기록할 로그 레벨', choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 
 ## 학습 모드와 추론 모드는 동시에 실행 불가능하게 막아놓음
 group = parser.add_mutually_exclusive_group()
