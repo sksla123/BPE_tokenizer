@@ -1,7 +1,7 @@
 import re
 import sys
 
-from .vocab import Vobaulary
+from .vocab import Vocabulary
 
 import logging
 from .logger import logger_name
