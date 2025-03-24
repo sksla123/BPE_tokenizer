@@ -27,7 +27,7 @@ args = parser.parse_args()
 logger = logging.getLogger("BPE Tokenizer")
 init_logger(logger)
 
-if args.log:
+if not args.log:
     disable_file_logger(logger)
 
 def main():
@@ -59,3 +59,5 @@ def main():
         bpe.train_bpe()
         bpe.save_vocab(bpe.vocab)
 
+if __name__ == "__main__":
+    main()

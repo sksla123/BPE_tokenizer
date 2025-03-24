@@ -1,11 +1,10 @@
 from collections import Counter
 from .tokenize import tokenize
 from .vocab import Vocabulary
+from .util import strip_token
 
 import logging
 from .logger import logger_name
-
-from .util import strip_token
 
 logger = logging.getLogger(logger_name)
 
@@ -45,11 +44,13 @@ class Instance:
         '''
 
         # 토큰 목록과 각 토큰의 등장 횟수 반환
-        ## self.word.count(token) * self.instance_count하는 이유 token이 단어 안에서 여러번 반복 될 수 있기 때문
+        # self.word.count(token) * self.instance_count 하는 이유: token이 단어 안에서 여러 번 반복될 수 있기 때문
 
-        counter = Counter(tokens)
-        counter = counter * self.instance_count
+        # Counter 생성과 값 조정을 한 번에 수행
+        counter = Counter({token: tokens.count(token) * self.instance_count for token in set(tokens)})
+
         return counter
+
     
     def get_token_count(self):
         '''
@@ -79,9 +80,8 @@ class Instance:
             if i == 0:
                 bigrams.append('[word]' + tokens[i] + tokens[i + 1])
             else:
-                bigrams.append('[subword]' + tokens[i] + tokens[i + 1])
-        
-        logger.debug(f"{self.word} 인스턴스의 인접 토큰 쌍 (bigrams): {bigrams}")
+                bigrams.append('[subword]' + tokens[i] + tokens[i + 1])       
+        # logger.debug(f"{self.word} 인스턴스의 인접 토큰 쌍 (bigrams): {bigrams}")
 
         return bigrams
     

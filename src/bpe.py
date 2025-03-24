@@ -107,10 +107,8 @@ class BPE():
         _char_in_corpus = list(set(corpus)) # 혹시 corpus에 ascii보다 큰 문자가 있을 수 있어서 처리하는 함수 추가(현 BPE에서는 ascii 문자만 사용함)
         word_vocab.extend(_char_in_corpus)
 
-        word_vocab = set(word_vocab)
-
         # 화이트 스페이스 문자 제거
-        word_vocab = [voc if voc not in whitespace_chars else voc for voc in word_vocab]
+        word_vocab = [voc if voc not in whitespace_chars else voc for voc in set(word_vocab)]
 
         total = len(instances)
         i = 0
@@ -131,6 +129,8 @@ class BPE():
         
         print(f"\n각 instance로 부터 vocab 생성 완료")
 
+        word_vocab = list(set(word_vocab))
+        subword_vocab = list(set(subword_vocab))
         base_vocab = Vocabulary(word_vocab, subword_vocab)        
 
         return base_vocab
@@ -192,6 +192,7 @@ class BPE():
             bigram_freq = Counter()
             for instance in instances:
                 _bigram_freq = instance.get_bigram_count()
+                # logger.debug(f"{instance.word}의 _bigram_freq: {_bigram_freq}")
                 bigram_freq += _bigram_freq
 
                 # 역인덱싱
@@ -200,6 +201,7 @@ class BPE():
                         bigram_to_instances[bigram] = [instance]
                     else:
                         bigram_to_instances[bigram].append(instance)
+            # logger.debug(f"bigram_freq: {bigram_freq}")
 
             # 가장 자주 등장하는 인접 토큰 쌍 찾기
             max_bigram = bigram_freq.most_common(1)[0][0]
@@ -217,7 +219,7 @@ class BPE():
 
             train_loop_count += 1
 
-            if f == 1:
+            if all(value == 1 for value in self.instances_token_counter.values()):
                 logger.info("더 이상 instance를 토큰화하는 것이 불가능하여 훈련 종료")
                 break
 

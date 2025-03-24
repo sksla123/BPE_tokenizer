@@ -1,4 +1,5 @@
 from .trie import Trie
+from .util import strip_token
 
 import logging
 from .logger import logger_name
@@ -18,6 +19,8 @@ class Vocabulary:
         self.word_vocab = word_vocab
         self.subword_vocab = subword_vocab
         self.vocab = word_vocab + subword_vocab
+        
+        self.merge_rules = []
 
         self.word_dict = Trie()
         self.subword_dict = Trie()
@@ -72,7 +75,7 @@ class Vocabulary:
             for subword in vocab:
                 self.subword_dict.insert(subword)
     
-    def add(self, token: str, to: str):
+    def _add(self, token: str, to: str):
         '''
             token (str): 추가할 토큰
             to (str): 토큰을 추가할 곳
@@ -88,6 +91,18 @@ class Vocabulary:
             self.subword_vocab.append(token)
             self.subword_dict.insert(token)
 
+    def add(self, token: str):
+        '''
+            token (str): 추가할 토큰
+        '''
+        _token = strip_token(token)
+
+        self.vocab.append(_token)
+        if token.startswith("[word]"):
+            self._add(_token, "word")
+        else:
+            self._add(_token, "subword")
+
 ## trie 자료구조 테스트용 코드
 def main():
     word_vocab_input = ["hello", "world", "hello_world"]
@@ -97,7 +112,7 @@ def main():
     
     print(vocab)
 
-    vocab.add("hi", "word")
+    vocab.add("[word]hi")
     print(vocab)
 
     print("문자열 hello의 word 토큰: ", vocab.get_token("hello", "word"))
