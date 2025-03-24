@@ -6,19 +6,24 @@ from .logger import logger_name
 logger = logging.getLogger(logger_name)
 
 # 어휘 집합 클래스
-class Vobaulary:
+class Vocabulary:
     '''
     어휘 집합을 관리하는 클래스
     '''
-    def __init__(self):
+    def __init__(self, word_vocab: list, subword_vocab: list):
         '''
-            vocab (list): 기본 어휘 집합
+            word_vocab (list): 기본 어휘 집합
+            subword_vocab (list): 기본 어휘 집합
         '''
-        self.word_vocab = []
-        self.subword_vocab = []
+        self.word_vocab = word_vocab
+        self.subword_vocab = subword_vocab
+        self.vocab = word_vocab + subword_vocab
 
         self.word_dict = Trie()
         self.subword_dict = Trie()
+
+        self.set_vocab(self.word_vocab, "word")
+        self.set_vocab(self.subword_vocab, "subword")
 
     def __str__(self):
         return f"Word Vocabulary: {self.word_vocab}\nSubword Vocabulary: {self.subword_vocab}"
@@ -88,9 +93,7 @@ def main():
     word_vocab_input = ["hello", "world", "hello_world"]
     subword_vocab_input = ["he", "ll", "o", "wo", "rld", "hel", "lo_", "wor", "ld"]
 
-    vocab = Vobaulary()
-    vocab.set_vocab(word_vocab_input, "word")
-    vocab.set_vocab(subword_vocab_input, "subword")
+    vocab = Vocabulary(word_vocab_input, subword_vocab_input)
     
     print(vocab)
 

@@ -1,5 +1,3 @@
-from collections import Counter
-
 # 타임스탬프 문자열 함수 정의
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -18,5 +16,3 @@ def strip_token(token: str) -> str:
     return (str): 제거된 토큰
     '''
     return token.lstrip('[subword]').lstrip('[word]')
-
-def list_counter()
