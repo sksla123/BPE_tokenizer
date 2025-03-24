@@ -1,3 +1,5 @@
+from collections import Counter
+
 from .instance import Instance
 from .vocab import Vobaulary
 
@@ -47,21 +49,14 @@ class BPE():
         return (list): 인스턴스 목록
         '''
 
-        instances = set(tokenized_instances)
-        
-        ### 진행상황 확인용 코드.. (너무 느려서 추가함)
-        result = []
-        i = 0
-        total = len(instances)
+        precomputed_counts = Counter(tokenized_instances)
+        instances = precomputed_counts.keys()
 
-        for instance in instances:
-            _instance = Instance(instance, tokenized_instances.count(instance))
-            result.append(_instance)
-            i += 1
-            print(f"\r인스턴스 생성 중 {i} / {total}", end="")
-        print(f"\n인스턴스 생성 완료")
+        result = [Instance(instance, precomputed_counts[instance]) for instance in instances]
 
-        return result
+        print("인스턴스 생성 완료")
+
+        return result        
     
     def _update_instances(self, instances: list, vocab: Vobaulary):
         '''
