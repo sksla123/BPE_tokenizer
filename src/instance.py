@@ -1,3 +1,4 @@
+from collections import Counter
 from .tokenize import tokenize
 from .vocab import Vobaulary
 
@@ -40,13 +41,16 @@ class Instance:
         '''
         tokens (str): 토큰 목록
 
-        return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
+        return (Counter): 토큰 목록과 각 토큰의 등장 횟수
         '''
 
         # 토큰 목록과 각 토큰의 등장 횟수 반환
         ## self.word.count(token) * self.instance_count하는 이유 token이 단어 안에서 여러번 반복 될 수 있기 때문
-        return [(strip_token(token), tokens.count(token) * self.instance_count) for token in set(tokens)]
 
+        counter = Counter(tokens)
+        counter = counter * self.instance_count
+        return counter
+    
     def get_token_count(self):
         '''
         return (list): [(token1, count1), (token2, count2), ...] 형식의 토큰 목록과 각 토큰의 등장 횟수
@@ -81,10 +85,10 @@ class Instance:
 
         return bigrams
     
-    def get_bigram_and_count(self):
+    def get_bigram_count(self):
         '''
         임의로 생성한 인접 토큰 쌍과 임의로 생성된 인접 토큰 쌍의 개수를 카운트
         return (list): [(bigram1, count1), (bigram2, count2), ...] 형식의 토큰 쌍 목록과 각 토큰 쌍의 등장 횟수
         '''
-        
-        return dict(self._get_bigram_count(self._create_bigrams()))
+
+        return self._get_bigram_count(self._create_bigrams())
