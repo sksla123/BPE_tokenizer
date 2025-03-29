@@ -20,6 +20,8 @@ def pre_tokenize(corpus: str, method: str = "whitespace"):
     if method == "whitespace":
         ret = re.split(r'\s+', corpus) ## whitespace 기준으로 분리
         
+        # BOM 문자 제거거
+
         # 비어있는 문자 제거
         if "" in ret:
             ret.remove("")

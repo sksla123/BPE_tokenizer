@@ -28,9 +28,6 @@ class BPE():
         self.tokenized_result_path = config_data.get("tokenized_result_path", None)
         self.vocab = None
 
-        ## break 판단을 위한 카운터
-        self.instances_token_counter = None
-
     def _load_corpus(self, corpus_path: str) -> str:
         '''
         코퍼스 파일을 로딩합니다.
@@ -223,16 +220,13 @@ class BPE():
         logger.info(f"어휘 집합 로딩 완료")
         logger.debug(f"어휘 집합 크기: {len(vocab)}")
 
-        return Vocabulary(vocab)
+        return vocab
     
-    def infer(self, input_data: str):
-        '''
-        input_data (str): 추론 데이터
-        '''
+    def infer(self):
 
         logger.info(f"추론 데이터를 로딩합니다. {self.input_data_path}")
-        with open(self.input_data_path, 'r') as f:
-            input_data = f.read()
+        input_data = self._load_corpus(self.input_data_path)
+        # input_data = "–"
         logger.info(f"추론 데이터 로딩 완료")
 
         logger.info(f"추론에 사용할 어휘 집합을 로딩합니다. {self.infer_vocab_path}")
@@ -246,8 +240,6 @@ class BPE():
         logger.info("추론 진행")
         infer_output = self._infer(tokenized_instances)
         logger.info("추론 완료")
-
-        self._save_infer_output(infer_output)
 
         return infer_output
 
@@ -263,10 +255,10 @@ class BPE():
         for instance in tokenized_instances:
             inst = Instance(instance, 1)
             inst.tokenize(self.vocab, mode="infer")
-            infer_output.append(inst.get_tokens())
+            infer_tokens_list.append(inst.get_tokens())
         
         infer_output = ""
-        for infer_tokens in infer_output:
+        for infer_tokens in infer_tokens_list:
             infer_output += " ".join([token_to_string(token) for token in infer_tokens])
             infer_output += "\n"
 
@@ -278,5 +270,6 @@ class BPE():
         '''
 
         logger.info(f"추론 결과를 저장합니다. {self.tokenized_result_path}")
+        os.makedirs(os.path.dirname(self.tokenized_result_path), exist_ok=True)
         with open(self.tokenized_result_path, 'w') as f:
             f.write(infer_output)
